@@ -1,0 +1,13 @@
+---
+layout: post
+title: znPlugin -- generic plug-in library
+date: '2007-10-25T18:24:00.001-05:00'
+author: Sachin
+tags:
+- znPlugin
+modified_time: '2008-02-14T01:18:28.727-06:00'
+blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-3261663870270320685
+blogger_orig_url: https://www.znprojects.com/2007/10/znplugin-generic-plug-in-library.html
+---
+
+As I mentioned earlier, znPlugin is a generic plug-in library that allows developers to add such functionality to their applications / libraries without forcing them to conform to any pre-defined interfaces.<br /><br />Some competing libraries / frameworks are listed below:<br /><ul><li><a href="http://www.ms-inc.net/ViewProduct_Plugins.aspx">MSINC .NET Plugins Library</a> - A library, written in 2004, that does exactly what I am trying to do. I've been going through the documentation, and it provides some great ideas of how to reach my goal.</li><li><a href="http://msdn.microsoft.com/msdnmag/issues/03/10/Plug-Ins/default.aspx">MSDN article</a> - Food for thought on what needs to be taken into account when writing a robust library.</li><li><a href="http://articles.techrepublic.com.com/5100-3513-6138904.html">TechRepublic</a> - Use C# and the .NET Framework to develop your own plugin architecture</li><li><a href="http://www.codeproject.com/dotnet/PluginManagerClassBrk.asp?df=100&amp;forumid=26061&amp;exp=0&amp;select=1564488">Creating a Flexible Dynamic Plugin Architecture under .NET</a> - They use XML files to store plugin information independent of the actual assembly. I did not opt for this approach, as it is extremely cumbersome to maintain an independent file unnecessarily.</li><li><a href="http://www.codeproject.com/cs/library/TaskPlugin.asp">Task Plug-in</a>: A Flexible .NET Plug-in Architecture - A good introduction to elementary plug-in architectures.</li></ul><p>I have already finished this library, for the most part. The only things left are to wrap the unsafe sections in try / catch blocks, perform testing and write some more documentation.</p>

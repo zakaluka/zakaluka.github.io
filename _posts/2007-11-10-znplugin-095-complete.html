@@ -1,0 +1,13 @@
+---
+layout: post
+title: znPlugin 0.95 complete
+date: '2007-11-10T02:36:00.000-06:00'
+author: Sachin
+tags:
+- znPlugin
+modified_time: '2007-11-10T02:42:50.155-06:00'
+blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-6349549587623562602
+blogger_orig_url: https://www.znprojects.com/2007/11/znplugin-095-complete.html
+---
+
+Well, I haven't had much chance to work on znPlugin for a while, but version 0.95 is done. The reason this is not version 1.0 is that I am still looking for ways to optimize the code in accordance with my use cases. However, it has turned out quite well.<br /><br />As I referenced in my last log, I had a good discussion with gneverov on <a href="http://cs.hubfs.net/">http://cs.hubfs.net/</a>. Near the end, you see a function posted that I wanted to incorporate into my code. However, that will no longer be possible because I have turned the Plugin Manager into a plugin factory. Thus, instead of creating and keeping objects around that may never be used, I create them on demand. The way I see it, if a user wants to get access to a previously created plugin, they should keep it around. Otherwise, they can always request a new copy.<br /><br />I've also updated what constitutes a possible plugin, by making explicit the idea that it can be nested, as long as it is public. In addition, the implicit idea that a plugin <strong>must</strong> have a default (no arguments) constructor has been made explicit. While I abhor even putting such a restriction on my clients, it greatly simplifies the code and reduces complexity (and the possibility of errors).<br /><br />Hopefully, I can find somewhere to put up my code. Preferably, somewhere with a SVN or CVS repository. I've thought of Sourceforge, but have had bad experiences in the past. If anyone knows of a good, and, for now, free, host, please feel free to leave a comment.

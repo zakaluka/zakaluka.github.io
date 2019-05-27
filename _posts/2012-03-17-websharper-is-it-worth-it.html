@@ -1,0 +1,14 @@
+---
+layout: post
+title: WebSharper - Is it worth it?
+date: '2012-03-17T21:53:00.002-05:00'
+author: Sachin
+tags:
+- F#
+- WebSharper
+modified_time: '2014-06-18T19:01:45.259-05:00'
+blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-6341966168656603946
+blogger_orig_url: https://www.znprojects.com/2012/03/websharper-is-it-worth-it.html
+---
+
+<div dir="ltr" style="text-align: left;" trbidi="on">So, I hate it when I comment on a software platform and then can't get it out of my mind.  This is what happened with F# and WebSharper.<br /><br />I hate been asking <a href="http://stackoverflow.com/questions/9640443/websharper-minimum-browser-requirements">some</a> <a href="http://fpish.net/topic/Some/0/74467">questions</a> that I think may have ticked off the WebSharper people.  If any of you are reading this, I swear that I just wanted the information before I invest too much time into re-learning F# and learning WebSharper.<br /><br />As I've gone further into GWT and znEve, I've found that the platform is becoming very cumbersome, as all large Java-based projects tend to become after a while.  Luckily, based on the comments in the above threads, it seems that F# and WebSharper may be a viable alternative.  I have decided to write a small test application to see whether this will work or not.<br /><br />Here is the new structure for how znEve will work.<br /><br />Server component: <br /><ul><li>written in GWT, PHP or Python, depending on what components it needs to hook into and where it'll run</li><li>expose RESTful interface</li><li>serve information based on tokens - most of the pages will not be accessible by the "public" (those not logged in)</li><li>perform OpenID authentication for clients</li><li>manage and protect user data</li></ul>Client component: <br /><ul><li>written in either GWT/Java or WebSharper/F#</li><li>should be self-contained</li><li>will contain the algorithms needed to re-calculate statistics for ship fittings, skill plans, etc. <ul><li>this may be an issue depending on how resource-intensive the algorithms are.  will have to test on mobile platforms (tablets, phones) to find out more.</li></ul></li></ul>Hopefully, this will get me off to a decent start.  The first step is to now write that test application and see how well it performs (or not). </div>

@@ -1,0 +1,13 @@
+---
+layout: post
+title: znOptions / znConfig update
+date: '2007-10-25T18:04:00.000-05:00'
+author: Sachin
+tags:
+- znConfig
+modified_time: '2008-02-14T01:16:25.500-06:00'
+blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-6304991332372895802
+blogger_orig_url: https://www.znprojects.com/2007/10/znoptions-znconfig-update.html
+---
+
+Well, it's been a while since I've posted. First, some changes:<br /><ul><li>znOptions has been renamed to znConfig.</li><li>The library has been redesigned to support more than one options style platform.</li><li>Instead of hard-coding the save formats, I will use a plug-in architecture (more on this later).</li></ul>Second, I have found some additional resources that have provided additional inspiration and ideas:<br /><ul><li><a href="http://nini.sourceforge.net/">Nini</a> - As per the description, "Nini is an uncommonly powerful .NET configuration library designed to help build highly configurable applications quickly." Though I haven't used this library, reading the documentation seems to hold this up.</li><li><a href="http://www.hyperrealm.com/libconfig/">libconfig</a> - The description states, "Libconfig is a simple library for manipulating structured configuration files, like this one: test.cfg. This file format is more compact and more readable than XML. And unlike XML, it is type-aware, so it is not necessary to do string parsing in application code." The type-aware part is interesting, though I've no intention of looking at the source code so I will be coming up with a solution for that independently.</li><li><a href="http://www.libelektra.org/Backends">Elektra</a> - Specifically, the backend page gave me some ideas about databases.</li></ul>I was half-done with znConfig when I came across Nini. Looking at the documentation, I realized that it was what I wanted to implement when I came up with the idea in the first place. As such, I also remembered another library that I was supposed to implement first: znPlugin, a generic plug-in library.<br /><br />As such, development on znConfig has temporarily ceased until znPlugin is done. Please see the next post for more information about znPlugin.<br /><br />NOTE: In case there is any question, I am not reading/downloading/studying/... any source code from any of the libraries mentioned in my posts (save for the MSDN reference code). The whole point here is to learn about F# through implementation ("learn by doing", and all that).

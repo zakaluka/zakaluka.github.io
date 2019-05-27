@@ -1,0 +1,13 @@
+---
+layout: post
+title: znOptions -- application options file library
+date: '2007-09-30T02:11:00.000-05:00'
+author: Sachin
+tags:
+- znConfig
+modified_time: '2008-02-14T01:14:38.610-06:00'
+blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-3075308260433175719
+blogger_orig_url: https://www.znprojects.com/2007/09/znoptions-application-options-file.html
+---
+
+Here is the first problem I want to tackle. I have, as yet, been unable to find a good options save/load library to manage application settings.<br /><br />On the flip-side, I have found a <a href="http://msdn2.microsoft.com/en-us/library/ms973902.aspx">very interesting post</a> on MSDN describing exactly what I want to do. However, I have no interest in using the registry and aggressively advocate self-contained cross-platform projects (think <a href="http://www.mono-project.com/Main_Page">Mono</a> and <a href="http://www.gnu.org/software/dotgnu/pnet.html">Portable.NET</a>). Thus, I will use the second method described on that page in order to create a more functional way to save and load settings while hiding the details from the developer.<br /><br />Interestingly, there is an OCaml library named <a href="http://home.gna.org/cameleon/">config_file</a>, part of the Cameleon2 system, that does something exactly like this. The primary reason not to use this (other than it being the easy way out) is to learn more about F#'s interaction with the rest of the .NET API and to learn a little more about .NET's XML manipulation capabilities in the process.<br /><br />Thanks and regards.
