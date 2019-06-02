@@ -13127,7 +13127,7 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Daily-Coding-Problem-3">Daily Coding Problem 3<a class="anchor-link" href="#Daily-Coding-Problem-3">&#182;</a></h1><h2 id="Problem-Statement">Problem Statement<a class="anchor-link" href="#Problem-Statement">&#182;</a></h2><p>This problem was asked by Google.</p>
+<h1 id="Daily-Coding-Problem-3">Daily Coding Problem 3<a class="anchor-link" href="#Daily-Coding-Problem-3">&nbsp;</a></h1><h2 id="Problem-Statement">Problem Statement<a class="anchor-link" href="#Problem-Statement">&nbsp;</a></h2><p>This problem was asked by Google.</p>
 <p>Given the root to a binary tree, implement serialize(root), which serializes the tree into a string, and deserialize(s), which deserializes the string back into the tree.</p>
 <p>For example, given the following Node class</p>
 <div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Node</span><span class="p">:</span>
@@ -13140,7 +13140,7 @@ div#notebook {
 <div class="highlight"><pre><span></span><span class="n">node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="s1">&#39;root&#39;</span><span class="p">,</span> <span class="n">Node</span><span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">Node</span><span class="p">(</span><span class="s1">&#39;left.left&#39;</span><span class="p">)),</span> <span class="n">Node</span><span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">))</span>
 <span class="k">assert</span> <span class="n">deserialize</span><span class="p">(</span><span class="n">serialize</span><span class="p">(</span><span class="n">node</span><span class="p">))</span><span class="o">.</span><span class="n">left</span><span class="o">.</span><span class="n">left</span><span class="o">.</span><span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;left.left&#39;</span>
 </pre></div>
-<h2 id="Solution">Solution<a class="anchor-link" href="#Solution">&#182;</a></h2><p>Each solution requires two algorithms, <code>serialize</code> and <code>deserialize</code>.</p>
+<h2 id="Solution">Solution<a class="anchor-link" href="#Solution">&nbsp;</a></h2><p>Each solution requires two algorithms, <code>serialize</code> and <code>deserialize</code>.</p>
 <p>First, let's pull in the Nuget packages for the solution.</p>
 
 </div>
@@ -13445,7 +13445,7 @@ google.F.Wj=function(b){for(var c=[],d=0;d<arguments.length;++d)c[d-0]=arguments
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Strategy-Part-1---Pick-the-correct-data-model">Strategy Part 1 - Pick the correct data model<a class="anchor-link" href="#Strategy-Part-1---Pick-the-correct-data-model">&#182;</a></h3><p>The strategy is to provide behavior in F# that is similar to Python (at least, as much as possible given the only example).  Since <code>val</code> is a keyword in F#, using it as a field name required wrapping it in 2 back-ticks, aka <code>``val``</code>.  Or renaming it to something like <code>value</code>.</p>
+<h3 id="Strategy-Part-1---Pick-the-correct-data-model">Strategy Part 1 - Pick the correct data model<a class="anchor-link" href="#Strategy-Part-1---Pick-the-correct-data-model">&nbsp;</a></h3><p>The strategy is to provide behavior in F# that is similar to Python (at least, as much as possible given the only example).  Since <code>val</code> is a keyword in F#, using it as a field name required wrapping it in 2 back-ticks, aka <code>``val``</code>.  Or renaming it to something like <code>value</code>.</p>
 <p>The key here, in my mind, is to pick the appropriate data type to hold the tree.  Some choices include:</p>
 <ol>
 <li>Discriminated union</li>
@@ -13565,14 +13565,14 @@ google.F.Wj=function(b){for(var c=[],d=0;d<arguments.length;++d)c[d-0]=arguments
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Strategy-Part-2---Figure-out-how-to-Serialize-and-Deserialize">Strategy Part 2 - Figure out how to Serialize and Deserialize<a class="anchor-link" href="#Strategy-Part-2---Figure-out-how-to-Serialize-and-Deserialize">&#182;</a></h3><p>The next question is this - how to serialize and deserialize the object into a string.  The problem doesn't specify the output string's format - so it could be XML, JSON, etc. or something custom.</p>
+<h3 id="Strategy-Part-2---Figure-out-how-to-Serialize-and-Deserialize">Strategy Part 2 - Figure out how to Serialize and Deserialize<a class="anchor-link" href="#Strategy-Part-2---Figure-out-how-to-Serialize-and-Deserialize">&nbsp;</a></h3><p>The next question is this - how to serialize and deserialize the object into a string.  The problem doesn't specify the output string's format - so it could be XML, JSON, etc. or something custom.</p>
 <p>Here are three ideas:</p>
 <ol>
 <li>Use an auto-JSON serializer and deserializer, like <a href="https://www.newtonsoft.com/json">Json.NET</a>.</li>
 <li>Use a manual JSON serializer and deserializer, like <a href="https://xyncro.tech/chiron/">Chiron</a>.</li>
 <li>Use a custom serializer and deserializer, using something like <a href="https://github.com/stephan-tolksdorf/fparsec">FParsec</a>.</li>
 </ol>
-<h4 id="Automatic-Serialization-using-Json.NET">Automatic Serialization using Json.NET<a class="anchor-link" href="#Automatic-Serialization-using-Json.NET">&#182;</a></h4><p>First, we write the functions for Automatic Serialization using Json.NET.</p>
+<h4 id="Automatic-Serialization-using-Json.NET">Automatic Serialization using Json.NET<a class="anchor-link" href="#Automatic-Serialization-using-Json.NET">&nbsp;</a></h4><p>First, we write the functions for Automatic Serialization using Json.NET.</p>
 
 </div>
 </div>
@@ -13609,7 +13609,7 @@ google.F.Wj=function(b){for(var c=[],d=0;d<arguments.length;++d)c[d-0]=arguments
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Manual-Serialization-using-Chiron">Manual Serialization using Chiron<a class="anchor-link" href="#Manual-Serialization-using-Chiron">&#182;</a></h4><p>Second, we have the functions for Manual Serialization using Chiron.  Please note that to use Chiron, the <code>static</code> functions <code>ToJson</code> and <code>FromJson</code> were added to each of the types (see above).</p>
+<h4 id="Manual-Serialization-using-Chiron">Manual Serialization using Chiron<a class="anchor-link" href="#Manual-Serialization-using-Chiron">&nbsp;</a></h4><p>Second, we have the functions for Manual Serialization using Chiron.  Please note that to use Chiron, the <code>static</code> functions <code>ToJson</code> and <code>FromJson</code> were added to each of the types (see above).</p>
 
 </div>
 </div>
@@ -13650,7 +13650,7 @@ google.F.Wj=function(b){for(var c=[],d=0;d<arguments.length;++d)c[d-0]=arguments
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Custom-Serialization-using-FParsec">Custom Serialization using FParsec<a class="anchor-link" href="#Custom-Serialization-using-FParsec">&#182;</a></h4><p>Finally, we have the functions for Custom Serialization using FParsec.  The strategy here is to serialize nodes with values as <code>Some("val") Child1 Child2</code> or as <code>None</code>.  We will also be using a pre-order traversal of the tree, i.e. process the parent node, then the left child, and finally the right child.</p>
+<h4 id="Custom-Serialization-using-FParsec">Custom Serialization using FParsec<a class="anchor-link" href="#Custom-Serialization-using-FParsec">&nbsp;</a></h4><p>Finally, we have the functions for Custom Serialization using FParsec.  The strategy here is to serialize nodes with values as <code>Some("val") Child1 Child2</code> or as <code>None</code>.  We will also be using a pre-order traversal of the tree, i.e. process the parent node, then the left child, and finally the right child.</p>
 
 </div>
 </div>
@@ -13812,7 +13812,7 @@ FSI_0009+Model+CNode
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Strategy-Part-3---Make-sure-the-De-/Serialization-strategies-work-as-expected">Strategy Part 3 - Make sure the De-/Serialization strategies work as expected<a class="anchor-link" href="#Strategy-Part-3---Make-sure-the-De-/Serialization-strategies-work-as-expected">&#182;</a></h3><p>Now that we have the 3 sets of de-/serializers written for each of the 3 data types, let's write some basic unit tests to ensure that the functions are behaving as expected.</p>
+<h3 id="Strategy-Part-3---Make-sure-the-De-/Serialization-strategies-work-as-expected">Strategy Part 3 - Make sure the De-/Serialization strategies work as expected<a class="anchor-link" href="#Strategy-Part-3---Make-sure-the-De-/Serialization-strategies-work-as-expected">&nbsp;</a></h3><p>Now that we have the 3 sets of de-/serializers written for each of the 3 data types, let's write some basic unit tests to ensure that the functions are behaving as expected.</p>
 <p><strong>NOTE: I <em>cannot</em> seem to get <code>FsCheck</code> to run in IfSharp / Jupyter.  If anyone has ideas on how to make it work, please let me know!</strong></p>
 <p>First, let's setup some common parameters.</p>
 
@@ -13877,7 +13877,7 @@ FSI_0009+Model+CNode
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Equality-Tests">Equality Tests<a class="anchor-link" href="#Equality-Tests">&#182;</a></h4><p>Let's ensure that our equality tests are working correctly, especially for <code>CNode</code>s because we had to override <code>Equals</code> and <code>GetHashCode</code>.</p>
+<h4 id="Equality-Tests">Equality Tests<a class="anchor-link" href="#Equality-Tests">&nbsp;</a></h4><p>Let's ensure that our equality tests are working correctly, especially for <code>CNode</code>s because we had to override <code>Equals</code> and <code>GetHashCode</code>.</p>
 
 </div>
 </div>
@@ -14005,7 +14005,7 @@ FSI_0009+Model+CNode
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Automatic-Serialization-using-Json.NET">Automatic Serialization using Json.NET<a class="anchor-link" href="#Automatic-Serialization-using-Json.NET">&#182;</a></h4><p>For our tests, we need to ensure that the 1 original test case works, and that random test cases also work correctly.</p>
+<h4 id="Automatic-Serialization-using-Json.NET">Automatic Serialization using Json.NET<a class="anchor-link" href="#Automatic-Serialization-using-Json.NET">&nbsp;</a></h4><p>For our tests, we need to ensure that the 1 original test case works, and that random test cases also work correctly.</p>
 
 </div>
 </div>
@@ -14096,7 +14096,7 @@ FSI_0009+Model+CNode
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Manual-Serialization-using-Chiron">Manual Serialization using Chiron<a class="anchor-link" href="#Manual-Serialization-using-Chiron">&#182;</a></h4>
+<h4 id="Manual-Serialization-using-Chiron">Manual Serialization using Chiron<a class="anchor-link" href="#Manual-Serialization-using-Chiron">&nbsp;</a></h4>
 </div>
 </div>
 </div>
@@ -14186,7 +14186,7 @@ FSI_0009+Model+CNode
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Custom-Serialization-using-FParsec">Custom Serialization using FParsec<a class="anchor-link" href="#Custom-Serialization-using-FParsec">&#182;</a></h4>
+<h4 id="Custom-Serialization-using-FParsec">Custom Serialization using FParsec<a class="anchor-link" href="#Custom-Serialization-using-FParsec">&nbsp;</a></h4>
 </div>
 </div>
 </div>
@@ -14278,14 +14278,14 @@ FSI_0009+Model+CNode
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>Excellent, our logic works!</p>
 <p>Now that we have it working, let's try some basic performance tests.</p>
-<h2 id="Performance-Testing">Performance Testing<a class="anchor-link" href="#Performance-Testing">&#182;</a></h2><p>Here is the strategy for performance testing.</p>
+<h2 id="Performance-Testing">Performance Testing<a class="anchor-link" href="#Performance-Testing">&nbsp;</a></h2><p>Here is the strategy for performance testing.</p>
 <p>Using random, pre-generated trees, test the following:</p>
 <ol>
 <li>Serialize trees (e.g. 1,000 of each model) using each of the 3 serialization methods.</li>
 <li>De-serialize those trees using each of the 3 deserialization methods.</li>
 </ol>
 <p>Hopefully, this will give us an indication of which combination of de-/serialization method and data structure is the "fastest".</p>
-<h3 id="Setup-the-test-data">Setup the test data<a class="anchor-link" href="#Setup-the-test-data">&#182;</a></h3><p>The first step is to create the trees that will be used for serialization and de-serialization.</p>
+<h3 id="Setup-the-test-data">Setup the test data<a class="anchor-link" href="#Setup-the-test-data">&nbsp;</a></h3><p>The first step is to create the trees that will be used for serialization and de-serialization.</p>
 
 </div>
 </div>
@@ -14356,7 +14356,7 @@ FSI_0009+Model+CNode
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Run-the-Performance-Tests">Run the Performance Tests<a class="anchor-link" href="#Run-the-Performance-Tests">&#182;</a></h3>
+<h3 id="Run-the-Performance-Tests">Run the Performance Tests<a class="anchor-link" href="#Run-the-Performance-Tests">&nbsp;</a></h3>
 </div>
 </div>
 </div>
@@ -14441,8 +14441,8 @@ FSI_0009+Model+CNode
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Plot-the-Performance-Tests">Plot the Performance Tests<a class="anchor-link" href="#Plot-the-Performance-Tests">&#182;</a></h3><p>And finally, we can plot the results in a simple table.</p>
-<h4 id="Serialization-Results">Serialization Results<a class="anchor-link" href="#Serialization-Results">&#182;</a></h4><p>As a data table, showing as <code>hh:mm:ss.ms</code>.</p>
+<h3 id="Plot-the-Performance-Tests">Plot the Performance Tests<a class="anchor-link" href="#Plot-the-Performance-Tests">&nbsp;</a></h3><p>And finally, we can plot the results in a simple table.</p>
+<h4 id="Serialization-Results">Serialization Results<a class="anchor-link" href="#Serialization-Results">&nbsp;</a></h4><p>As a data table, showing as <code>hh:mm:ss.ms</code>.</p>
 
 </div>
 </div>
@@ -14563,7 +14563,7 @@ FSI_0009+Model+CNode
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Deserialization-Results">Deserialization Results<a class="anchor-link" href="#Deserialization-Results">&#182;</a></h4><p>Again as a table, with the <code>hh:mm:ss.ms</code> format.</p>
+<h4 id="Deserialization-Results">Deserialization Results<a class="anchor-link" href="#Deserialization-Results">&nbsp;</a></h4><p>Again as a table, with the <code>hh:mm:ss.ms</code> format.</p>
 
 </div>
 </div>
@@ -14682,7 +14682,7 @@ FSI_0009+Model+CNode
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Conclusion">Conclusion<a class="anchor-link" href="#Conclusion">&#182;</a></h2><p>The results are very interesting.  From a CPU perspective, FParsec wins hands down regardless of the chosen data structure.  There is an order of magnitude difference between the three serialization techniques.</p>
+<h2 id="Conclusion">Conclusion<a class="anchor-link" href="#Conclusion">&nbsp;</a></h2><p>The results are very interesting.  From a CPU perspective, FParsec wins hands down regardless of the chosen data structure.  There is an order of magnitude difference between the three serialization techniques.</p>
 <p>From an SLOC perspective, Json.NET is the clear winner.  Serialization and deserialization are both 1 line, each.  FParsec is the most complex, requiring the development of a custom de-/serialization format, then ensuring that all 3 data structures can be transformed to that format.</p>
 <p>Chiron stays right in the middle, both in terms of performance and SLOC.</p>
 <p>The one advantage that both Chiron and FParsec can provide is that, when created the right way, the serialized string can be deserialized into any of the 3 data structures (discriminated union, record, or class).  The FParsec implementation above works that way.</p>

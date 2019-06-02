@@ -11812,7 +11812,7 @@ $( document ).ready(function(){
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Daily-Coding-Problem-1---Revisited">Daily Coding Problem 1 - Revisited<a class="anchor-link" href="#Daily-Coding-Problem-1---Revisited">&#182;</a></h1><p>You can find the original blog post <a href="https://www.znprojects.com/2019/01/daily-coding-problem-1.html">here</a>.  The purpose of this post is to attempt a solution using a suggestion left by a reader, <a href="https://www.blogger.com/profile/07000579469514387730">Josef Starychfojtu</a>.</p>
+<h1 id="Daily-Coding-Problem-1---Revisited">Daily Coding Problem 1 - Revisited<a class="anchor-link" href="#Daily-Coding-Problem-1---Revisited">&nbsp;</a></h1><p>You can find the original blog post <a href="https://www.znprojects.com/2019/01/daily-coding-problem-1.html">here</a>.  The purpose of this post is to attempt a solution using a suggestion left by a reader, <a href="https://www.blogger.com/profile/07000579469514387730">Josef Starychfojtu</a>.</p>
 <p>His suggest was, and I quote:</p>
 <blockquote><p>This problem can be solved in O(n) with a hash map, (compared to yours O(n^2))</p>
 <p>in which you hash the number in a way that if x + y = k, they would end up in the same slot.</p>
@@ -11835,10 +11835,10 @@ $( document ).ready(function(){
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>First, to recap, here is the original problem statement.</p>
-<h2 id="Problem-Statement">Problem Statement<a class="anchor-link" href="#Problem-Statement">&#182;</a></h2><p>Given a list of numbers and a number <code>k</code>, return whether any two numbers from the list add up to <code>k</code>.</p>
+<h2 id="Problem-Statement">Problem Statement<a class="anchor-link" href="#Problem-Statement">&nbsp;</a></h2><p>Given a list of numbers and a number <code>k</code>, return whether any two numbers from the list add up to <code>k</code>.</p>
 <p>For example, given <code>[10, 15, 3, 7]</code> and <code>k</code> of 17, return true since 10 + 7 is 17.</p>
 <p>Bonus: Can you do this in one pass?</p>
-<h2 id="Solution">Solution<a class="anchor-link" href="#Solution">&#182;</a></h2><h3 id="Strategy-3---F#-Set">Strategy 3 - F# Set<a class="anchor-link" href="#Strategy-3---F#-Set">&#182;</a></h3><p>Let's start by looking at what this solution will look like.  We start with the formula provided by Josef, i.e. <code>x + y = k</code>.</p>
+<h2 id="Solution">Solution<a class="anchor-link" href="#Solution">&nbsp;</a></h2><h3 id="Strategy-3---F#-Set">Strategy 3 - F# Set<a class="anchor-link" href="#Strategy-3---F#-Set">&nbsp;</a></h3><p>Let's start by looking at what this solution will look like.  We start with the formula provided by Josef, i.e. <code>x + y = k</code>.</p>
 <p>Let's assume that <code>x</code> is an element in the list and <code>k</code> is as defined in the Problem Statement.</p>
 <p>In that case, we need to find out whether <code>y</code> is a member of the list.  Or, put another way <code>{ y | y</code>&isin;<code>list, y = k - x }</code>.</p>
 <p>In addition, we need to ensure that if <code>k = 2 * x</code>, which is to say that <code>x = y</code>, that there are two instances of <code>x</code> in the list.</p>
@@ -12295,7 +12295,7 @@ google.F.Wj=function(b){for(var c=[],d=0;d<arguments.length;++d)c[d-0]=arguments
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>Our logic works.  Let's add one more strategy, because MSDN seems to imply that F#'s Set type / module is based on structural comparison (not that that's an issue for integers).</p>
-<h3 id="Strategy-4---F#-Map-/-Dictionary">Strategy 4 - F# Map / Dictionary<a class="anchor-link" href="#Strategy-4---F#-Map-/-Dictionary">&#182;</a></h3><p>We use the same strategy as #3, except using an F# <code>Map</code>.</p>
+<h3 id="Strategy-4---F#-Map-/-Dictionary">Strategy 4 - F# Map / Dictionary<a class="anchor-link" href="#Strategy-4---F#-Map-/-Dictionary">&nbsp;</a></h3><p>We use the same strategy as #3, except using an F# <code>Map</code>.</p>
 
 </div>
 </div>
@@ -12420,7 +12420,7 @@ google.F.Wj=function(b){for(var c=[],d=0;d<arguments.length;++d)c[d-0]=arguments
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Performance-Comparison">Performance Comparison<a class="anchor-link" href="#Performance-Comparison">&#182;</a></h2><p>Now that we have two new implementations which run in O(n), let's perform some basic performance comparisons using BenchmarkDotNet.</p>
+<h2 id="Performance-Comparison">Performance Comparison<a class="anchor-link" href="#Performance-Comparison">&nbsp;</a></h2><p>Now that we have two new implementations which run in O(n), let's perform some basic performance comparisons using BenchmarkDotNet.</p>
 <p>I am importing the first two implementations from the first blog post.</p>
 
 </div>
@@ -12737,7 +12737,7 @@ google.F.Wj=function(b){for(var c=[],d=0;d<arguments.length;++d)c[d-0]=arguments
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Plot-the-performance-results">Plot the performance results<a class="anchor-link" href="#Plot-the-performance-results">&#182;</a></h3><p>And now we can visualize the results.  We start with the raw numbers.</p>
+<h3 id="Plot-the-performance-results">Plot the performance results<a class="anchor-link" href="#Plot-the-performance-results">&nbsp;</a></h3><p>And now we can visualize the results.  We start with the raw numbers.</p>
 
 </div>
 </div>
@@ -12954,7 +12954,7 @@ google.F.Wj=function(b){for(var c=[],d=0;d<arguments.length;++d)c[d-0]=arguments
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Individual-charts">Individual charts<a class="anchor-link" href="#Individual-charts">&#182;</a></h3><p>This section contains individual charts, one for each of the 7 data points in the table / column chart above.</p>
+<h3 id="Individual-charts">Individual charts<a class="anchor-link" href="#Individual-charts">&nbsp;</a></h3><p>This section contains individual charts, one for each of the 7 data points in the table / column chart above.</p>
 
 </div>
 </div>
@@ -13269,7 +13269,7 @@ google.F.Wj=function(b){for(var c=[],d=0;d<arguments.length;++d)c[d-0]=arguments
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Conclusion">Conclusion<a class="anchor-link" href="#Conclusion">&#182;</a></h2><p>The results are quite definitive, assuming the data can be considered reliable (i.e. tracking Memory and CPU usage from within IFSharp/Jupyter, running on Mono).</p>
+<h2 id="Conclusion">Conclusion<a class="anchor-link" href="#Conclusion">&nbsp;</a></h2><p>The results are quite definitive, assuming the data can be considered reliable (i.e. tracking Memory and CPU usage from within IFSharp/Jupyter, running on Mono).</p>
 <p>The Subtraction method is still ~36% faster than Brute Force.  However, with the Set and Map methods, there was an over-98% decrease in run-time and 98-99% decrease in CPU usage.</p>
 <p>Measuring memory usage, on the other hand, is a complete mess.  Every time I ran this Jupyter notebook, the system recorded wildly different reading for memory, often showing negative values. I have left the latest readings available above, but please take them with a large grain of salt.</p>
 <p>Regardless of the memory situation, this problem clearly shows that algorithmic complexity and selecting the appropriate data structure can have a huge impact on your system's performance.  Going from <code>O(n^2)</code> to <code>O(n)</code> (or better) had a drastic impact on processing time and CPU usage.</p>
