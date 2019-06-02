@@ -13,4 +13,512 @@ blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-3271462083087865266
 blogger_orig_url: https://www.znprojects.com/2017/04/aoc-2016-day-2-alternate-solutions.html
 ---
 
-  <style type="text/css">code{white-space: pre;}</style>  <style type="text/css">div.sourceCode { overflow-x: auto; } table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {   margin: 0; padding: 0; vertical-align: baseline; border: none; } table.sourceCode { width: 100%; line-height: 100%; } td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; } td.sourceCode { padding-left: 5px; } code > span.kw { color: #007020; font-weight: bold; } /* Keyword */ code > span.dt { color: #902000; } /* DataType */ code > span.dv { color: #40a070; } /* DecVal */ code > span.bn { color: #40a070; } /* BaseN */ code > span.fl { color: #40a070; } /* Float */ code > span.ch { color: #4070a0; } /* Char */ code > span.st { color: #4070a0; } /* String */ code > span.co { color: #60a0b0; font-style: italic; } /* Comment */ code > span.ot { color: #007020; } /* Other */ code > span.al { color: #ff0000; font-weight: bold; } /* Alert */ code > span.fu { color: #06287e; } /* Function */ code > span.er { color: #ff0000; font-weight: bold; } /* Error */ code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */ code > span.cn { color: #880000; } /* Constant */ code > span.sc { color: #4070a0; } /* SpecialChar */ code > span.vs { color: #4070a0; } /* VerbatimString */ code > span.ss { color: #bb6688; } /* SpecialString */ code > span.im { } /* Import */ code > span.va { color: #19177c; } /* Variable */ code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */ code > span.op { color: #666666; } /* Operator */ code > span.bu { } /* BuiltIn */ code > span.ex { } /* Extension */ code > span.pp { color: #bc7a00; } /* Preprocessor */ code > span.at { color: #7d9029; } /* Attribute */ code > span.do { color: #ba2121; font-style: italic; } /* Documentation */ code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */ code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */   </style>  <!--[if lt IE 9]>    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>  <![endif]--><h1>Table of Contents</h1><nav id="TOC"><ul><li><a href="#aoc-2016---day-2-alternate-solutions">AOC 2016 - Day 2 Alternate Solutions</a><ul><li><a href="#modeling-a-board">Modeling a board</a><ul><li><a href="#storing-a-board-in-a-text-file">Storing a board in a text file</a></li><li><a href="#vertices">Vertices</a></li><li><a href="#edges">Edges</a></li><li><a href="#building-the-board">Building the board</a></li></ul></li><li><a href="#generic-solution-framework">Generic solution framework</a></li><li><a href="#graph-data-structures">Graph data structures</a><ul><li><a href="#adjacency-matrix">Adjacency Matrix</a></li><li><a href="#edge-list">Edge List</a></li><li><a href="#adjacency-list">Adjacency List</a></li><li><a href="#inductive-graph">Inductive Graph</a></li></ul></li><li><a href="#testing">Testing</a></li><li><a href="#performance">Performance</a><ul><li><a href="#observations">Observations</a></li></ul></li><li><a href="#next-steps">Next steps</a></li></ul></li></ul></nav><h1 id="aoc-2016---day-2-alternate-solutions">AOC 2016 - Day 2 Alternate Solutions</h1><p><em><a href="http://adventofcode.com/2016/day/2">Problem on AOC website</a>.</em></p><p><em>Code for this post can be found on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/">GitHub</a>.</em></p><p>This post is a follow-up to my <a href="https://znprojects.blogspot.com/2017/03/aoc-2016-day-2-afterthoughts.html">last post</a> on my solution for AOC Day 2 and how I was unhappy with the design (though my initial results were still correct).</p><p>Since that time, I have implemented a set of five graph data structures to make the solution more robust than simply encoding the minimum solution with a function.</p><p>These data structures have a few advantages:</p><ul><li>The data types are much more robust - for the board and the graphs. Instead of talking in terms of raw numbers / strings, I can now speak in terms of Vertices and Edges.</li><li>The solution's design allows for the underlying data structure to be swapped out as long as we can provide implementations of two key functions - <code>create</code> and <code>getNext</code>.</li><li>Different graph structures can be compared in terms of (basic) performance. I will provide my numbers at the end of this blog.</li></ul><h2 id="modeling-a-board">Modeling a board</h2><p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoCommon.fsx">GitHub</a></em></p><h3 id="storing-a-board-in-a-text-file">Storing a board in a text file</h3><p>First, I changed the way that boards are stored. Rather than hard-coding the board or worse, encoding the representation directly into the algorithm with no easy way to change it, I picked a very simple text-based format.</p><p>Blank spaces are represented by dots / periods (<code>.</code>). All other characters represent a unique <code>Vertex</code>.</p><p>For day 2, part 1, the following board is stored in a <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/d2p1_map">text file</a>.</p><pre><code>123<br />456<br />789</code></pre><p>Similarly, here is the <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/d2p2_map">day 2, part 2 board</a>:</p><pre><code>..1..<br />.234.<br />56789<br />.ABC.<br />..D..</code></pre><p>Boards are represented internally as a set of vertices and edges. Let's look at those in more detail.</p><h3 id="vertices">Vertices</h3><p>A <code>Vertex</code> is a tuple consisting of an integer accompanied by a string label. Here are the type and module signatures for <code>Vertex</code>.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> Vertex =<br />  | V <span class="kw">of</span> <span class="dt">int</span> * <span class="dt">string</span><br />  <span class="kw">with</span><br />    <span class="kw">override</span> ToString : <span class="dt">unit</span> -&gt; <span class="dt">string</span><br />  end<br /><span class="ot">module</span> Vertex = <span class="kw">begin</span><br />  <span class="kw">val</span> create : idx:<span class="dt">int</span> -&gt; label:<span class="dt">string</span> -&gt; Vertex<br />  <span class="kw">val</span> toInt : _arg1:Vertex -&gt; <span class="dt">int</span><br />  <span class="kw">val</span> toString : x:Vertex -&gt; <span class="dt">string</span><br />  <span class="kw">val</span> strToV : lbl:<span class="dt">string</span> -&gt; (<span class="dt">seq</span>&lt;Vertex&gt; -&gt; Vertex)<br />  <span class="kw">val</span> intToV : idx:<span class="dt">int</span> -&gt; (<span class="dt">seq</span>&lt;Vertex&gt; -&gt; Vertex)<br /><span class="kw">end</span></code></pre></div><p>Here are the expected properties of a <code>Vertex</code>.</p><ul><li>Each <code>Vertex</code> must be represented by a unique integer.</li><li>Each <code>Vertex</code> must have a unique string label (for <code>strToV</code> to work correctly).</li><li>While not strictly required, the on-screen display for certain graph data structures is much prettier if each string label has a length of 1 (aka a single character).</li></ul><p>All the properties listed above are not enforced by the data type. However, some properties are enforced by the <code>Board</code> creation algorithm.</p><h3 id="edges">Edges</h3><p>The AOC Day 2 problem requires directed graphs. Thus, an edge is stored as a pair of vertices and a direction.</p><p>We have four directions in the AOC problem - <code>R</code>ight, <code>L</code>eft, <code>U</code>p, and <code>D</code>own.</p><p><code>Direction</code> also has both a type and an accompanying module:</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> Direction =<br />  | R<br />  | L<br />  | U<br />  | D<br />  <span class="kw">with</span><br />    <span class="kw">override</span> ToString : <span class="dt">unit</span> -&gt; <span class="dt">string</span><br />  end<br /><span class="ot">module</span> Direction = <span class="kw">begin</span><br />  <span class="kw">val</span> opposite : _arg1:Direction -&gt; Direction<br />  <span class="kw">val</span> toDirection : _arg1:<span class="dt">string</span> -&gt; Direction<br /><span class="kw">end</span></code></pre></div><p><em>As I was working on the alternate solutions for Day 2, I added certain functions to various modules as I was writing the graph structures. However, in certain cases, I did not require those functions in the final solution but still left them in the module. A good example of this is the <code>opposite</code> function in the <code>Direction</code> module.</em></p><p>The <code>Edge</code> type and module are as follows:</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> Edge =<br />  | E <span class="kw">of</span> Vertex * Direction * Vertex<br />  <span class="kw">with</span><br />    <span class="kw">override</span> ToString : <span class="dt">unit</span> -&gt; <span class="dt">string</span><br />  end<br /><span class="ot">module</span> Edge = <span class="kw">begin</span><br />  <span class="kw">val</span> create : dir:Direction -&gt; v1:Vertex * v2:Vertex -&gt; Edge<br />  <span class="kw">val</span> toString : e:Edge -&gt; <span class="dt">string</span><br />  <span class="kw">val</span> fromV : Edge -&gt; Vertex<br />  <span class="kw">val</span> toV : Edge -&gt; Vertex<br />  <span class="kw">val</span> direction : Edge -&gt; Direction<br /><span class="kw">end</span></code></pre></div><p><code>fromV</code>, <code>direction</code>, and <code>toV</code> represent the three individual components of an <code>Edge</code>.</p><p>Some properties of an <code>Edge</code>:</p><ul><li>Edges are defined solely by the two vertices they connect and the direction of the connection. They have no other unique identifiers (internal or external).</li></ul><h3 id="building-the-board">Building the board</h3><p>Now that all the building blocks are in place, we can build the <code>Board</code>. The type and module for <code>Board</code> are as follows.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> Board =<br />  {vertices: <span class="dt">seq</span>&lt;Vertex&gt;;<br />    edges: <span class="dt">seq</span>&lt;Edge&gt;;}<br />  <span class="kw">with</span><br />    <span class="kw">override</span> ToString : <span class="dt">unit</span> -&gt; <span class="dt">string</span><br />  end<br /><span class="ot">module</span> Board = <span class="kw">begin</span><br />  <span class="kw">val</span> transpose : rows:<span class="dt">seq</span>&lt;#seq&lt;&#39;b&gt;&gt; -&gt; <span class="dt">seq</span>&lt;<span class="dt">seq</span>&lt;&#39;b&gt;&gt;<br />  <span class="kw">val</span> validEdge : l1:<span class="dt">string</span> * l2:<span class="dt">string</span> -&gt; <span class="dt">bool</span><br />  <span class="kw">val</span> potentialEdgesByRow :<br />    verts:<span class="dt">seq</span>&lt;Vertex&gt; -&gt; rows:<span class="dt">seq</span>&lt;#seq&lt;<span class="dt">string</span>&gt;&gt; -&gt; <span class="dt">seq</span>&lt;Vertex * Vertex&gt;<br />  <span class="kw">val</span> reverse : x:&#39;a * y:&#39;b -&gt; &#39;b * &#39;a<br />  <span class="kw">val</span> squareup : strs:<span class="dt">seq</span>&lt;<span class="dt">seq</span>&lt;<span class="dt">string</span>&gt;&gt; -&gt; <span class="dt">seq</span>&lt;<span class="dt">seq</span>&lt;<span class="dt">string</span>&gt;&gt;<br />  <span class="kw">val</span> parseBoard : strB:<span class="dt">string</span> -&gt; Board<br /><span class="kw">end</span></code></pre></div><p>Most of the functions for the <code>Board</code> module are internal functions and should not be invoked by an external client. The most important function in the module is <code>parseBoard</code>, which takes in a string representing the board (e.g. the text files I mentioned earlier) and returns a constructed <code>Board</code> that meets a number of requirements.</p><ul><li>Boards are two-dimensional.</li><li>Each character in the string representation that is not a blank space is turned into a unique vertex.</li><li>Each vertex is given a unique integer ID.</li><li>Boards do not contain diagonal edges.</li><li>Each pair of neighboring vertices has two edges between them.</li><li>Given two neighboring vertices, the two edges between them have opposite directions.</li></ul><h2 id="generic-solution-framework">Generic solution framework</h2><p>The solution performs the following steps to get to the final answer for the problem.</p><ol type="1"><li>Create a <code>Board</code> from the <code>boardFile</code>.</li><li>Use that <code>Board</code> to create a graph using <code>bCreateF</code>.</li><li>Translate the instructions from the <code>instrFile</code> into <code>Direction</code>s.</li><li>Take each line of instructions and run them through the graph. The start <code>Vertex</code> for each line of instructions is the result from the previous line of instructions, except for the first line of instructions which uses <code>Vertex</code> &quot;5&quot; as its start <code>Vertex</code>.</li><li>Turn the result from each line of instructions into a <code>string</code>, then concatenate them.</li></ol><p>The solution framework has two functions, <code>moveAll</code> and <code>day2part1</code>. The former uses <code>bGetNextF</code> to move through a line of instructions. The latter is the connector that converts a board and lines of instructions into a final answer.</p><p>The solution framework's signature is as follows.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="ot">module</span> Solution = <span class="kw">begin</span><br />  <span class="kw">val</span> moveAll :<br />    func:(Vertex -&gt; &#39;a -&gt; Vertex) -&gt;<br />      startv:Vertex -&gt; instrs:<span class="dt">seq</span>&lt;&#39;a&gt; -&gt; Vertex<br />  <span class="kw">val</span> day2part1 :<br />    boardFile:<span class="dt">string</span> -&gt;<br />      instrFile:<span class="dt">string</span> -&gt;<br />        bCreateF:(Board -&gt; &#39;a) -&gt;<br />          bGetNextF:(&#39;a -&gt; Vertex -&gt; Direction -&gt; Vertex) -&gt; <span class="dt">string</span><br /><span class="kw">end</span></code></pre></div><h2 id="graph-data-structures">Graph data structures</h2><p>The graph data structures below are admittedly naively implemented, except inductive graphs which make use of the <a href="https://xyncro.tech/hekate/">Hekate</a> library. However, they all follow certain rules:</p><ul><li>Each data structure's type is hidden within its respective module.</li><li>Once a graph is created, it is not modified in any way.</li><li>If the <code>getNext</code> function cannot find a move in the given direction from the given source vertex, it will return the source vertex to the caller.</li></ul><h3 id="adjacency-matrix">Adjacency Matrix</h3><p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoAdjMat.fsx">GitHub</a>.</em></p><p>Per <a href="https://en.wikipedia.org/wiki/Adjacency_matrix">Wikipedia</a>, an adjacency matrix is &quot;a square matrix used to represent a finite graph&quot;.</p><p>Since the AOC Day 2 implementation requires a directed graph, the adjacency matrix cannot be a symmetric matrix. For my implementation, the label for each row represents the &quot;from <code>Vertex</code>&quot;, the label for each column represents the &quot;to <code>Vertex</code>&quot; and the value at their intersection represents the <code>Direction</code> of movement.</p><p>For example, when looking at the Day 2, Part 1 board below, you can read the first entry as &quot;When you start from Vertex 1 and go Right, you arrive at Vertex 2&quot;.</p><p>Here is the text representation of the Day 2, Part 1 board as an adjacency matrix.</p><pre><code>  123456789<br />1 .R.D.....<br />2 L.R.D....<br />3 .L...D...<br />4 U...R.D..<br />5 .U.L.R.D.<br />6 ..U.L...D<br />7 ...U...R.<br />8 ....U.L.R<br />9 .....U.L.</code></pre><p>And here is the text representation of the Day 2, Part 2 board.</p><pre><code>  123456789ABCD<br />1 ..D..........<br />2 ..R..D.......<br />3 UL.R..D......<br />4 ..L....D.....<br />5 .....R.......<br />6 .U..L.R..D...<br />7 ..U..L.R..D..<br />8 ...U..L.R..D.<br />9 .......L.....<br />A .....U....R..<br />B ......U..L.RD<br />C .......U..L..<br />D ..........U..</code></pre><p>Internally, an adjacency matrix is stored as an <code>Array2D [,]</code>. The scheme used to create this data structure is somewhat fragile because it assumes that the first Vertex has a unique integer ID of <code>0</code> and that subsequent vertices' IDs are incremented deterministically without gaps. Since we control <code>Board</code> and <code>Vertex</code> creation, we can rely on this assumption for now but it would be a dangerous assumption to make in production code.</p><p>The <code>getNext</code> function takes the following steps to move through the board:</p><ol type="1"><li>Use the 2D array to find the row representing the <code>from</code> Vertex.</li><li>Once found, go through the row and looks for the desired <code>Direction</code>.</li><li>If found, use that column index to go from an integer to a <code>Vertex</code> using <code>Board.vertices</code>.</li><li>If not found, return the <code>from</code> Vertex to the caller.</li></ol><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getNext am from dir =<br />  <span class="kw">match</span> am <span class="kw">with</span><br />  | AM(x, b) -&gt;<br />    <span class="kw">let</span> fromInt = Vertex<span class="kw">.</span>toInt from<br />    <span class="kw">let</span> colBase = Array2D<span class="kw">.</span>base2 x<br />    x.[fromInt..fromInt,colBase..]<br />    |&gt; Seq<span class="kw">.</span>cast&lt;Direction <span class="dt">option</span>&gt;<br />    |&gt; Seq<span class="kw">.</span>tryFindIndex (( = ) (Some dir))<br />    |&gt; <span class="kw">function</span><br />      | Some idx -&gt; Seq<span class="kw">.</span>item idx b.vertices<br />      | None -&gt; from</code></pre></div><h3 id="edge-list">Edge List</h3><p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoEdgeList.fsx">GitHub</a>.</em></p><p>An edge list is an extremely simple graph implementation which does not transform the original <code>Board</code>'s internal structures in any way. It is, as the name implies, an exhaustive list of all edges in the graph.</p><p>Here is a visual representation of the Day 2, Part 1 board.</p><pre><code>Edges: [&quot;4-&gt;U-&gt;1&quot;; &quot;7-&gt;U-&gt;4&quot;; &quot;5-&gt;U-&gt;2&quot;; &quot;8-&gt;U-&gt;5&quot;; &quot;6-&gt;U-&gt;3&quot;; &quot;9-&gt;U-&gt;6&quot;; &quot;1-&gt;D-&gt;4&quot;;<br /> &quot;4-&gt;D-&gt;7&quot;; &quot;2-&gt;D-&gt;5&quot;; &quot;5-&gt;D-&gt;8&quot;; &quot;3-&gt;D-&gt;6&quot;; &quot;6-&gt;D-&gt;9&quot;; &quot;1-&gt;R-&gt;2&quot;; &quot;2-&gt;R-&gt;3&quot;;<br /> &quot;4-&gt;R-&gt;5&quot;; &quot;5-&gt;R-&gt;6&quot;; &quot;7-&gt;R-&gt;8&quot;; &quot;8-&gt;R-&gt;9&quot;; &quot;2-&gt;L-&gt;1&quot;; &quot;3-&gt;L-&gt;2&quot;; &quot;5-&gt;L-&gt;4&quot;;<br /> &quot;6-&gt;L-&gt;5&quot;; &quot;8-&gt;L-&gt;7&quot;; &quot;9-&gt;L-&gt;8&quot;]</code></pre><p>And the Day 2, Part 2 board.</p><pre><code>Edges: [&quot;6-&gt;U-&gt;2&quot;; &quot;A-&gt;U-&gt;6&quot;; &quot;3-&gt;U-&gt;1&quot;; &quot;7-&gt;U-&gt;3&quot;; &quot;B-&gt;U-&gt;7&quot;; &quot;D-&gt;U-&gt;B&quot;; &quot;8-&gt;U-&gt;4&quot;;<br /> &quot;C-&gt;U-&gt;8&quot;; &quot;2-&gt;D-&gt;6&quot;; &quot;6-&gt;D-&gt;A&quot;; &quot;1-&gt;D-&gt;3&quot;; &quot;3-&gt;D-&gt;7&quot;; &quot;7-&gt;D-&gt;B&quot;; &quot;B-&gt;D-&gt;D&quot;;<br /> &quot;4-&gt;D-&gt;8&quot;; &quot;8-&gt;D-&gt;C&quot;; &quot;2-&gt;R-&gt;3&quot;; &quot;3-&gt;R-&gt;4&quot;; &quot;5-&gt;R-&gt;6&quot;; &quot;6-&gt;R-&gt;7&quot;; &quot;7-&gt;R-&gt;8&quot;;<br /> &quot;8-&gt;R-&gt;9&quot;; &quot;A-&gt;R-&gt;B&quot;; &quot;B-&gt;R-&gt;C&quot;; &quot;3-&gt;L-&gt;2&quot;; &quot;4-&gt;L-&gt;3&quot;; &quot;6-&gt;L-&gt;5&quot;; &quot;7-&gt;L-&gt;6&quot;;<br /> &quot;8-&gt;L-&gt;7&quot;; &quot;9-&gt;L-&gt;8&quot;; &quot;B-&gt;L-&gt;A&quot;; &quot;C-&gt;L-&gt;B&quot;]</code></pre><p>The <code>getNext</code> function for an edge list is quite simple as well.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getNext (EL(b)) from dir =<br />  <span class="kw">let</span> destv =<br />    Seq<span class="kw">.</span>tryFind<br />      (<span class="kw">fun</span> (E(v1,d,v2)) -&gt; v1 = from &amp;&amp; d = dir)<br />      b.edges<br />  <span class="kw">match</span> destv <span class="kw">with</span><br />  | Some(E(_,_,v2)) -&gt; v2<br />  | None -&gt; from</code></pre></div><h3 id="adjacency-list">Adjacency List</h3><p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoAdjList.fsx">GitHub</a></em></p><p>As opposed to an edge list, an adjacency list takes a <code>Vertex</code>-centric approach to representing graphs. Many implementations of adjacency lists internally use a data structure like a hashmap or hashtable, where the key is a <code>Vertex</code> and the value is a list of vertices (possibly with additional data) that the key can connect to.</p><p>For my implementation, I used two separate data structures to implement the adjacency lists - <code>dict</code> and <code>Map</code>. The keys are <code>Vertex</code> instances and the values are lists of <code>Edge</code>s.</p><p>Here is a visual representation of the Day 2, Part 1 board.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="dv">1</span>==&gt;<span class="dv">1</span>-&gt;D-&gt;<span class="dv">4</span>, <span class="dv">1</span>-&gt;R-&gt;<span class="dv">2</span>,<br /><span class="dv">2</span>==&gt;<span class="dv">2</span>-&gt;D-&gt;<span class="dv">5</span>, <span class="dv">2</span>-&gt;R-&gt;<span class="dv">3</span>, <span class="dv">2</span>-&gt;L-&gt;<span class="dv">1</span>,<br /><span class="dv">3</span>==&gt;<span class="dv">3</span>-&gt;D-&gt;<span class="dv">6</span>, <span class="dv">3</span>-&gt;L-&gt;<span class="dv">2</span>,<br /><span class="dv">4</span>==&gt;<span class="dv">4</span>-&gt;U-&gt;<span class="dv">1</span>, <span class="dv">4</span>-&gt;D-&gt;<span class="dv">7</span>, <span class="dv">4</span>-&gt;R-&gt;<span class="dv">5</span>,<br /><span class="dv">5</span>==&gt;<span class="dv">5</span>-&gt;U-&gt;<span class="dv">2</span>, <span class="dv">5</span>-&gt;D-&gt;<span class="dv">8</span>, <span class="dv">5</span>-&gt;R-&gt;<span class="dv">6</span>, <span class="dv">5</span>-&gt;L-&gt;<span class="dv">4</span>,<br /><span class="dv">6</span>==&gt;<span class="dv">6</span>-&gt;U-&gt;<span class="dv">3</span>, <span class="dv">6</span>-&gt;D-&gt;<span class="dv">9</span>, <span class="dv">6</span>-&gt;L-&gt;<span class="dv">5</span>,<br /><span class="dv">7</span>==&gt;<span class="dv">7</span>-&gt;U-&gt;<span class="dv">4</span>, <span class="dv">7</span>-&gt;R-&gt;<span class="dv">8</span>,<br /><span class="dv">8</span>==&gt;<span class="dv">8</span>-&gt;U-&gt;<span class="dv">5</span>, <span class="dv">8</span>-&gt;R-&gt;<span class="dv">9</span>, <span class="dv">8</span>-&gt;L-&gt;<span class="dv">7</span>,<br /><span class="dv">9</span>==&gt;<span class="dv">9</span>-&gt;U-&gt;<span class="dv">6</span>, <span class="dv">9</span>-&gt;L-&gt;<span class="dv">8</span>,</code></pre></div><p>Here is the Day 2, Part 2 board.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="dv">1</span>==&gt;<span class="dv">1</span>-&gt;D-&gt;<span class="dv">3</span>,<br /><span class="dv">2</span>==&gt;<span class="dv">2</span>-&gt;D-&gt;<span class="dv">6</span>, <span class="dv">2</span>-&gt;R-&gt;<span class="dv">3</span>,<br /><span class="dv">3</span>==&gt;<span class="dv">3</span>-&gt;U-&gt;<span class="dv">1</span>, <span class="dv">3</span>-&gt;D-&gt;<span class="dv">7</span>, <span class="dv">3</span>-&gt;R-&gt;<span class="dv">4</span>, <span class="dv">3</span>-&gt;L-&gt;<span class="dv">2</span>,<br /><span class="dv">4</span>==&gt;<span class="dv">4</span>-&gt;D-&gt;<span class="dv">8</span>, <span class="dv">4</span>-&gt;L-&gt;<span class="dv">3</span>,<br /><span class="dv">5</span>==&gt;<span class="dv">5</span>-&gt;R-&gt;<span class="dv">6</span>,<br /><span class="dv">6</span>==&gt;<span class="dv">6</span>-&gt;U-&gt;<span class="dv">2</span>, <span class="dv">6</span>-&gt;D-&gt;A, <span class="dv">6</span>-&gt;R-&gt;<span class="dv">7</span>, <span class="dv">6</span>-&gt;L-&gt;<span class="dv">5</span>,<br /><span class="dv">7</span>==&gt;<span class="dv">7</span>-&gt;U-&gt;<span class="dv">3</span>, <span class="dv">7</span>-&gt;D-&gt;B, <span class="dv">7</span>-&gt;R-&gt;<span class="dv">8</span>, <span class="dv">7</span>-&gt;L-&gt;<span class="dv">6</span>,<br /><span class="dv">8</span>==&gt;<span class="dv">8</span>-&gt;U-&gt;<span class="dv">4</span>, <span class="dv">8</span>-&gt;D-&gt;C, <span class="dv">8</span>-&gt;R-&gt;<span class="dv">9</span>, <span class="dv">8</span>-&gt;L-&gt;<span class="dv">7</span>,<br /><span class="dv">9</span>==&gt;<span class="dv">9</span>-&gt;L-&gt;<span class="dv">8</span>,<br />A==&gt;A-&gt;U-&gt;<span class="dv">6</span>, A-&gt;R-&gt;B,<br />B==&gt;B-&gt;U-&gt;<span class="dv">7</span>, B-&gt;D-&gt;D, B-&gt;R-&gt;C, B-&gt;L-&gt;A,<br />C==&gt;C-&gt;U-&gt;<span class="dv">8</span>, C-&gt;L-&gt;B,<br />D==&gt;D-&gt;U-&gt;B,</code></pre></div><p>The <code>getNext</code> implementations for both the <code>dict</code> and <code>Map</code> versions are very similar, only differing in how the various values are accessed.</p><p>First, here is the <code>getNext</code> implementation for the <code>dict</code>-version of adjacency lists.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getNext (AL(d,_)) from dir : Vertex =<br />  <span class="kw">let</span> es = d.Item from<br />  <span class="kw">match</span> Seq<span class="kw">.</span>tryFind (<span class="kw">fun</span> (E(_,d,_)) -&gt; dir = d) es <span class="kw">with</span><br />  | Some (E(_,_,v2)) -&gt; v2<br />  | None -&gt; from</code></pre></div><p>And, similarly, here is the <code>Map</code>-version of <code>getNext</code>.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getNext (AL(d,_)) from dir =<br />  <span class="kw">let</span> es = Map<span class="kw">.</span>find from d<br />  <span class="kw">match</span> Seq<span class="kw">.</span>tryFind (<span class="kw">fun</span> (E(_,d,_)) -&gt; dir = d) es <span class="kw">with</span><br />  | Some (E(_,_,v2)) -&gt; v2<br />  | None -&gt; from</code></pre></div><h3 id="inductive-graph">Inductive Graph</h3><p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoIndGraph.fsx">GitHub</a>.</em></p><p>Finally, I used an inductive graph library, <a href="https://github.com/xyncro/hekate">Hekate</a>, as my final representation of a graph in F#. As I noted in my <a href="https://znprojects.blogspot.com/2017/03/aoc-2016-day-2-afterthoughts.html">last blog post</a>, inductive graphs were introduced by Erwig in his 2001 paper and then implemented (first) as the Haskell <a href="https://hackage.haskell.org/package/fgl">fgl</a> library.</p><p>Inductive graphs are functional data structures that allow similar operations to other inductive data structures such as lists and trees.</p><p>Despite using a library here instead of implementing the data structure myself, I actually enjoyed writing code with this library. The authors have done a great job of using familiar syntax and patterns with Hekate. The only downside I could find is that the Hekate library is almost completely undocumented. I learned how to use the library from the unit tests I found on <a href="https://github.com/xyncro/hekate/blob/master/tests/Hekate.Tests/Hekate.Tests.fs">GitHub</a> and from reading Erwig's original paper.</p><p>Here is the Day 2, Part 1 board represented visually as an inductive graph.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">map<br />  [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>),<br />    (map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), L); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), U)], <span class="st">&quot;1&quot;</span>,<br />     map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), R); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), D)]));<br />   (V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>),<br />    (map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), R); (V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), L); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), U)], <span class="st">&quot;2&quot;</span>,<br />     map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), L); (V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), R); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), D)]));<br />   (V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>),<br />    (map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), R); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), U)], <span class="st">&quot;3&quot;</span>,<br />     map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), L); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), D)]));<br />   (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>),<br />    (map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), D); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), L); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), U)], <span class="st">&quot;4&quot;</span>,<br />     map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), U); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), R); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), D)]));<br />   (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>),<br />    (map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), D); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), R); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), L); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), U)], <span class="st">&quot;5&quot;</span>,<br />     map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), U); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), L); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), R); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), D)]));<br />   (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>),<br />    (map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), D); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), R); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), U)], <span class="st">&quot;6&quot;</span>,<br />     map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), U); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), L); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), D)]));<br />   (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>),<br />    (map [(V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), D); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), L)], <span class="st">&quot;7&quot;</span>,<br />     map [(V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), U); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), R)]));<br />   (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>),<br />    (map [(V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), D); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), R); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), L)], <span class="st">&quot;8&quot;</span>,<br />     map [(V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), U); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), L); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), R)]));<br />   (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>),<br />    (map [(V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), D); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), R)], <span class="st">&quot;9&quot;</span>,<br />     map [(V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), U); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), L)]))]</code></pre></div><p>And here is the Day 2, Part 2 board as an inductive graph. Please note that F# Interactive actually truncated the print out. I am assuming it did this due to the size of the map.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">map<br />  [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), (map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), U)], <span class="st">&quot;1&quot;</span>, map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), D)]));<br />   (V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>),<br />    (map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), L); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), U)], <span class="st">&quot;2&quot;</span>,<br />     map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), R); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), D)]));<br />   (V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>),<br />    (map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), D); (V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), R); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), L); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), U)], <span class="st">&quot;3&quot;</span>,<br />     map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), U); (V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), L); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), R); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), D)]));<br />   (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>),<br />    (map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), R); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), U)], <span class="st">&quot;4&quot;</span>,<br />     map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), L); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), D)]));<br />   (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), (map [(V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), L)], <span class="st">&quot;5&quot;</span>, map [(V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), R)]));<br />   (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>),<br />    (map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), D); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), R); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), L); (V (<span class="dv">9</span>,<span class="st">&quot;A&quot;</span>), U)], <span class="st">&quot;6&quot;</span>,<br />     map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), U); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), L); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), R); (V (<span class="dv">9</span>,<span class="st">&quot;A&quot;</span>), D)]));<br />   (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>),<br />    (map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), D); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), R); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), L); (V (<span class="dv">10</span>,<span class="st">&quot;B&quot;</span>), U)], <span class="st">&quot;7&quot;</span>,<br />     map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), U); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), L); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), R); (V (<span class="dv">10</span>,<span class="st">&quot;B&quot;</span>), D)]));<br />   (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>),<br />    (map [(V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), D); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), R); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), L); (V (<span class="dv">11</span>,<span class="st">&quot;C&quot;</span>), U)], <span class="st">&quot;8&quot;</span>,<br />     map [(V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), U); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), L); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), R); (V (<span class="dv">11</span>,<span class="st">&quot;C&quot;</span>), D)]));<br />   (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), (map [(V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), R)], <span class="st">&quot;9&quot;</span>, map [(V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), L)])); ...]</code></pre></div><p>The <code>getNext</code> algorithm is relatively simple, considering that each <code>Vertex</code> stores information about both its predecessors and successors, i.e. what points to the <code>Vertex</code> and what the <code>Vertex</code> points to, respectively.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getNext ig from dir =<br />  <span class="kw">match</span> Graph<span class="kw">.</span>Nodes<span class="kw">.</span>successors from ig <span class="kw">with</span><br />  | None -&gt; from<br />  | Some succs -&gt;<br />    succs<br />    |&gt; List<span class="kw">.</span>tryFind (<span class="kw">fun</span> (_,d) -&gt; d = dir)<br />    |&gt; <span class="kw">function</span><br />      | None -&gt; from<br />      | Some (dest,_) -&gt; dest</code></pre></div><h2 id="testing">Testing</h2><p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoCommonTest.fsx">GitHub</a>.</em></p><p>In the past, I have struggled quite a bit with properly implementing <a href="https://github.com/fscheck/FsCheck">FsCheck</a> tests. However, this time around, the combination of using FsCheck directly (as opposed to using it in combination with a testing library like <a href="https://github.com/mausch/Fuchu">Fuchu</a> or <a href="https://xunit.github.io/">Xunit</a>) and using it from F# script files (as opposed to compiled programs) made the experience much more pleasant and was a great learning experience.</p><p>I wrote tests using <a href="https://github.com/fscheck/FsCheck">FsCheck</a> to ensure that my implementations were correct - and I'm glad I did. I found a number of elementary mistakes by having automated tests that I could easily run after each change to validate my results. For each data structure, I wrote 6 tests:</p><ol type="1"><li>A printout of the Day 2, Part 1 board (to be verified manually).</li><li>A printout of the Day 2, Part 2 board (to be verified manually).</li><li>The Day 2, Part 1 test provided in the AOC problem description.</li><li>The Day 2, Part 2 test provided in the AOC problem description.</li><li>The Day 2, Part 1 problem stated in the AOC problem description.</li><li>The Day 2, Part 2 problem stated in the AOC problem description.</li></ol><p>I could not automate the first two tests because each data structure's printout was quite different from the others.</p><p>I was able to implement the last two tests because I had already solved Day 2's problems and knew the correct answers.</p><h2 id="performance">Performance</h2><p><em>Raw data on <a href="https://github.com/zakaluka/blog/blob/master/aoc/d2runtimes.xlsx">GitHub</a> - requires a program that can read XLSX files.</em></p><p>After writing the five graph data structure implementations, I decided to run some basic performance tests on them. Having a generalized solution framework allowed me to attribute all differences in runtimes to the specific data structure being used.</p><p>To perform the tests in the most &quot;unbiased&quot; way possible, I ran each test 5 times and took the average of the results. For each run, I executed the last 4 tests listed in the <a href="#testing">Testing</a> section.</p><p>Without further ado, here are the results from using F# interactive's <code>#time</code> directive.</p><table><caption><em>Average run-time and garbage collection performance of the algorithms, sorted by the <code>Real average</code> column in ascending order.</em></caption><thead><tr class="header"><th style="text-align: left;">Algorithm</th><th style="text-align: right;">Real average</th><th style="text-align: right;">CPU average</th><th style="text-align: right;">Gen0 average</th><th style="text-align: right;">Gen1 average</th><th style="text-align: right;">Gen2 average</th></tr></thead><tbody><tr class="odd"><td style="text-align: left;">Adjacency List Dict</td><td style="text-align: right;">0.8452</td><td style="text-align: right;">0.8326</td><td style="text-align: right;">104.2</td><td style="text-align: right;">25.2</td><td style="text-align: right;">0</td></tr><tr class="even"><td style="text-align: left;">Adjacency List Map</td><td style="text-align: right;">0.8684</td><td style="text-align: right;">0.8576</td><td style="text-align: right;">105.8</td><td style="text-align: right;">21.6</td><td style="text-align: right;">0</td></tr><tr class="odd"><td style="text-align: left;">Inductive Graph</td><td style="text-align: right;">0.9894</td><td style="text-align: right;">0.9852</td><td style="text-align: right;">136.2</td><td style="text-align: right;">33</td><td style="text-align: right;">0</td></tr><tr class="even"><td style="text-align: left;">Adjacency Matrix</td><td style="text-align: right;">4.4932</td><td style="text-align: right;">4.4798</td><td style="text-align: right;">530.6</td><td style="text-align: right;">78.8</td><td style="text-align: right;">0.6</td></tr><tr class="odd"><td style="text-align: left;">Edge List</td><td style="text-align: right;">359.2024</td><td style="text-align: right;">359.1448</td><td style="text-align: right;">68896.6</td><td style="text-align: right;">61.4</td><td style="text-align: right;">3.6</td></tr></tbody></table><p>I then took the Adjacency List Dict implementation as the baseline (since it was the fastest) and translated the same table into percentages.</p><table><caption><em>Average run-time and garbage collection performance as a percentage, with Adjacency List Dict as the baseline.</em></caption><thead><tr class="header"><th style="text-align: left;">Algorithm</th><th style="text-align: right;">Real</th><th style="text-align: right;">CPU</th><th style="text-align: right;">Gen0</th><th style="text-align: right;">Gen1</th><th style="text-align: right;">Gen2</th></tr></thead><tbody><tr class="odd"><td style="text-align: left;">Adjacency List Dict</td><td style="text-align: right;">100%</td><td style="text-align: right;">100%</td><td style="text-align: right;">100%</td><td style="text-align: right;">100%</td><td style="text-align: right;">-</td></tr><tr class="even"><td style="text-align: left;">Adjacency List Map</td><td style="text-align: right;">103%</td><td style="text-align: right;">103%</td><td style="text-align: right;">102%</td><td style="text-align: right;">86%</td><td style="text-align: right;">-</td></tr><tr class="odd"><td style="text-align: left;">Inductive Graph</td><td style="text-align: right;">117%</td><td style="text-align: right;">118%</td><td style="text-align: right;">131%</td><td style="text-align: right;">131%</td><td style="text-align: right;">-</td></tr><tr class="even"><td style="text-align: left;">Adjacency Matrix</td><td style="text-align: right;">532%</td><td style="text-align: right;">538%</td><td style="text-align: right;">509%</td><td style="text-align: right;">313%</td><td style="text-align: right;">100%</td></tr><tr class="odd"><td style="text-align: left;">Edge List</td><td style="text-align: right;">42499%</td><td style="text-align: right;">43135%</td><td style="text-align: right;">66120%</td><td style="text-align: right;">244%</td><td style="text-align: right;">600%</td></tr></tbody></table><h3 id="observations">Observations</h3><p>I was not surprised to find that the Edge List was the worst performer. However, I was surprised by how much worse its performance was, even on a small board, than the next worst algorithm, the Adjacency Matrix.</p><p>Along those same lines, I was surprised by how poor the performance of the Adjacency Matrix was. However, I have a feeling that a more optimized implementation could do much better than my naive attempt. I believe my observation (as to my poor Adjacency Matrix writing skills) is accurate considering that it, along with the Adjacency List, is one of the most popular data structures for storing graphs.</p><p>The inductive graph performed very well for a relatively new data structure that was intended, from the beginning, to be a new way of storing graphs in functional languages. Its run-time performance was approximately 17% worse than the baseline and memory performance (based on garbage collection) was approximately 31% worse than the baseline. For someone who needs a graph data structure for more than just a <code>getNext</code> function, it could be a serious contender and warrants additional testing.</p><h2 id="next-steps">Next steps</h2><p>I am satisfied with the results of this investigation into graph data structures in F#. I was able to implement all algorithms in a functional manner within a generic framework. I believe I have accomplished the goal that I set out with, which was to find a more robust and 'realistic' way of representing graph-like structures in F#.</p><p>However, here are some items that I could not (or did not) complete and may be worth looking into:</p><ul><li>Change the base data structures to enforce more of the expected properties / invariants.</li><li>Make the types for <code>Vertex</code>, <code>Edge</code>, <code>Direction</code>, etc. private and move them within their respective modules.</li><li>Test with larger / more complex boards to better understand performance.</li><li>Change the way boards are parsed from text files so that when the same character appears multiple times on a board, it is treated as the same Vertex (allowing for more complex board structures).</li><li>Change boards to allow 3D representations.</li><li>Remove copying from Adjacency Matrix's <code>create</code> function.</li><li>Implement (or find existing libraries) and test more functions of graph data structures.</li></ul><p>I will now be returning to blogging about my solutions for Advent of Code 2016 problems. I am greatly looking forward to this because I have temporarily stopped solving more problems until I catch up with my blog posts. Hopefully, I will be able to post my Day 3 solutions in the next week.</p><p>See you next time!</p></body></html>
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+<!--[if lt IE 9]>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+<h1 id="aoc-2016---day-2-alternate-solutions">AOC 2016 - Day 2 Alternate Solutions</h1>
+<p><em><a href="http://adventofcode.com/2016/day/2">Problem on AOC website</a>.</em></p>
+<p><em>Code for this post can be found on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/">GitHub</a>.</em></p>
+<p>This post is a follow-up to my <a href="https://znprojects.blogspot.com/2017/03/aoc-2016-day-2-afterthoughts.html">last post</a> on my solution for AOC Day 2 and how I was unhappy with the design (though my initial results were still correct).</p>
+<p>Since that time, I have implemented a set of five graph data structures to make the solution more robust than simply encoding the minimum solution with a function.</p>
+<p>These data structures have a few advantages:</p>
+<ul>
+<li>The data types are much more robust - for the board and the graphs. Instead of talking in terms of raw numbers / strings, I can now speak in terms of Vertices and Edges.</li>
+<li>The solution's design allows for the underlying data structure to be swapped out as long as we can provide implementations of two key functions - <code>create</code> and <code>getNext</code>.</li>
+<li>Different graph structures can be compared in terms of (basic) performance. I will provide my numbers at the end of this blog.</li>
+</ul>
+<h2 id="modeling-a-board">Modeling a board</h2>
+<p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoCommon.fsx">GitHub</a></em></p>
+<h3 id="storing-a-board-in-a-text-file">Storing a board in a text file</h3>
+<p>First, I changed the way that boards are stored. Rather than hard-coding the board or worse, encoding the representation directly into the algorithm with no easy way to change it, I picked a very simple text-based format.</p>
+<p>Blank spaces are represented by dots / periods (<code>.</code>). All other characters represent a unique <code>Vertex</code>.</p>
+<p>For day 2, part 1, the following board is stored in a <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/d2p1_map">text file</a>.</p>
+<pre><code>123
+456
+789</code></pre>
+<p>Similarly, here is the <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/d2p2_map">day 2, part 2 board</a>:</p>
+<pre><code>..1..
+.234.
+56789
+.ABC.
+..D..</code></pre>
+<p>Boards are represented internally as a set of vertices and edges. Let's look at those in more detail.</p>
+<h3 id="vertices">Vertices</h3>
+<p>A <code>Vertex</code> is a tuple consisting of an integer accompanied by a string label. Here are the type and module signatures for <code>Vertex</code>.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> Vertex =
+| V <span class="kw">of</span> <span class="dt">int</span> * <span class="dt">string</span>
+<span class="kw">with</span>
+  <span class="kw">override</span> ToString : <span class="dt">unit</span> -&gt; <span class="dt">string</span>
+end
+<span class="ot">module</span> Vertex = <span class="kw">begin</span>
+<span class="kw">val</span> create : idx:<span class="dt">int</span> -&gt; label:<span class="dt">string</span> -&gt; Vertex
+<span class="kw">val</span> toInt : _arg1:Vertex -&gt; <span class="dt">int</span>
+<span class="kw">val</span> toString : x:Vertex -&gt; <span class="dt">string</span>
+<span class="kw">val</span> strToV : lbl:<span class="dt">string</span> -&gt; (<span class="dt">seq</span>&lt;Vertex&gt; -&gt; Vertex)
+<span class="kw">val</span> intToV : idx:<span class="dt">int</span> -&gt; (<span class="dt">seq</span>&lt;Vertex&gt; -&gt; Vertex)
+<span class="kw">end</span></code></pre></div>
+<p>Here are the expected properties of a <code>Vertex</code>.</p>
+<ul>
+<li>Each <code>Vertex</code> must be represented by a unique integer.</li>
+<li>Each <code>Vertex</code> must have a unique string label (for <code>strToV</code> to work correctly).</li>
+<li>While not strictly required, the on-screen display for certain graph data structures is much prettier if each string label has a length of 1 (aka a single character).</li>
+</ul>
+<p>All the properties listed above are not enforced by the data type. However, some properties are enforced by the <code>Board</code> creation algorithm.</p>
+<h3 id="edges">Edges</h3>
+<p>The AOC Day 2 problem requires directed graphs. Thus, an edge is stored as a pair of vertices and a direction.</p>
+<p>We have four directions in the AOC problem - <code>R</code>ight, <code>L</code>eft, <code>U</code>p, and <code>D</code>own.</p>
+<p><code>Direction</code> also has both a type and an accompanying module:</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> Direction =
+| R
+| L
+| U
+| D
+<span class="kw">with</span>
+  <span class="kw">override</span> ToString : <span class="dt">unit</span> -&gt; <span class="dt">string</span>
+end
+<span class="ot">module</span> Direction = <span class="kw">begin</span>
+<span class="kw">val</span> opposite : _arg1:Direction -&gt; Direction
+<span class="kw">val</span> toDirection : _arg1:<span class="dt">string</span> -&gt; Direction
+<span class="kw">end</span></code></pre></div>
+<p><em>As I was working on the alternate solutions for Day 2, I added certain functions to various modules as I was writing the graph structures. However, in certain cases, I did not require those functions in the final solution but still left them in the module. A good example of this is the <code>opposite</code> function in the <code>Direction</code> module.</em></p>
+<p>The <code>Edge</code> type and module are as follows:</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> Edge =
+| E <span class="kw">of</span> Vertex * Direction * Vertex
+<span class="kw">with</span>
+  <span class="kw">override</span> ToString : <span class="dt">unit</span> -&gt; <span class="dt">string</span>
+end
+<span class="ot">module</span> Edge = <span class="kw">begin</span>
+<span class="kw">val</span> create : dir:Direction -&gt; v1:Vertex * v2:Vertex -&gt; Edge
+<span class="kw">val</span> toString : e:Edge -&gt; <span class="dt">string</span>
+<span class="kw">val</span> fromV : Edge -&gt; Vertex
+<span class="kw">val</span> toV : Edge -&gt; Vertex
+<span class="kw">val</span> direction : Edge -&gt; Direction
+<span class="kw">end</span></code></pre></div>
+<p><code>fromV</code>, <code>direction</code>, and <code>toV</code> represent the three individual components of an <code>Edge</code>.</p>
+<p>Some properties of an <code>Edge</code>:</p>
+<ul>
+<li>Edges are defined solely by the two vertices they connect and the direction of the connection. They have no other unique identifiers (internal or external).</li>
+</ul>
+<h3 id="building-the-board">Building the board</h3>
+<p>Now that all the building blocks are in place, we can build the <code>Board</code>. The type and module for <code>Board</code> are as follows.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> Board =
+{vertices: <span class="dt">seq</span>&lt;Vertex&gt;;
+  edges: <span class="dt">seq</span>&lt;Edge&gt;;}
+<span class="kw">with</span>
+  <span class="kw">override</span> ToString : <span class="dt">unit</span> -&gt; <span class="dt">string</span>
+end
+<span class="ot">module</span> Board = <span class="kw">begin</span>
+<span class="kw">val</span> transpose : rows:<span class="dt">seq</span>&lt;#seq&lt;&#39;b&gt;&gt; -&gt; <span class="dt">seq</span>&lt;<span class="dt">seq</span>&lt;&#39;b&gt;&gt;
+<span class="kw">val</span> validEdge : l1:<span class="dt">string</span> * l2:<span class="dt">string</span> -&gt; <span class="dt">bool</span>
+<span class="kw">val</span> potentialEdgesByRow :
+  verts:<span class="dt">seq</span>&lt;Vertex&gt; -&gt; rows:<span class="dt">seq</span>&lt;#seq&lt;<span class="dt">string</span>&gt;&gt; -&gt; <span class="dt">seq</span>&lt;Vertex * Vertex&gt;
+<span class="kw">val</span> reverse : x:&#39;a * y:&#39;b -&gt; &#39;b * &#39;a
+<span class="kw">val</span> squareup : strs:<span class="dt">seq</span>&lt;<span class="dt">seq</span>&lt;<span class="dt">string</span>&gt;&gt; -&gt; <span class="dt">seq</span>&lt;<span class="dt">seq</span>&lt;<span class="dt">string</span>&gt;&gt;
+<span class="kw">val</span> parseBoard : strB:<span class="dt">string</span> -&gt; Board
+<span class="kw">end</span></code></pre></div>
+<p>Most of the functions for the <code>Board</code> module are internal functions and should not be invoked by an external client. The most important function in the module is <code>parseBoard</code>, which takes in a string representing the board (e.g. the text files I mentioned earlier) and returns a constructed <code>Board</code> that meets a number of requirements.</p>
+<ul>
+<li>Boards are two-dimensional.</li>
+<li>Each character in the string representation that is not a blank space is turned into a unique vertex.</li>
+<li>Each vertex is given a unique integer ID.</li>
+<li>Boards do not contain diagonal edges.</li>
+<li>Each pair of neighboring vertices has two edges between them.</li>
+<li>Given two neighboring vertices, the two edges between them have opposite directions.</li>
+</ul>
+<h2 id="generic-solution-framework">Generic solution framework</h2>
+<p>The solution performs the following steps to get to the final answer for the problem.</p>
+<ol type="1">
+<li>Create a <code>Board</code> from the <code>boardFile</code>.</li>
+<li>Use that <code>Board</code> to create a graph using <code>bCreateF</code>.</li>
+<li>Translate the instructions from the <code>instrFile</code> into <code>Direction</code>s.</li>
+<li>Take each line of instructions and run them through the graph. The start <code>Vertex</code> for each line of instructions is the result from the previous line of instructions, except for the first line of instructions which uses <code>Vertex</code> &quot;5&quot; as its start <code>Vertex</code>.</li>
+<li>Turn the result from each line of instructions into a <code>string</code>, then concatenate them.</li>
+</ol>
+<p>The solution framework has two functions, <code>moveAll</code> and <code>day2part1</code>. The former uses <code>bGetNextF</code> to move through a line of instructions. The latter is the connector that converts a board and lines of instructions into a final answer.</p>
+<p>The solution framework's signature is as follows.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="ot">module</span> Solution = <span class="kw">begin</span>
+<span class="kw">val</span> moveAll :
+  func:(Vertex -&gt; &#39;a -&gt; Vertex) -&gt;
+    startv:Vertex -&gt; instrs:<span class="dt">seq</span>&lt;&#39;a&gt; -&gt; Vertex
+<span class="kw">val</span> day2part1 :
+  boardFile:<span class="dt">string</span> -&gt;
+    instrFile:<span class="dt">string</span> -&gt;
+      bCreateF:(Board -&gt; &#39;a) -&gt;
+        bGetNextF:(&#39;a -&gt; Vertex -&gt; Direction -&gt; Vertex) -&gt; <span class="dt">string</span>
+<span class="kw">end</span></code></pre></div>
+<h2 id="graph-data-structures">Graph data structures</h2>
+<p>The graph data structures below are admittedly naively implemented, except inductive graphs which make use of the <a href="https://xyncro.tech/hekate/">Hekate</a> library. However, they all follow certain rules:</p>
+<ul>
+<li>Each data structure's type is hidden within its respective module.</li>
+<li>Once a graph is created, it is not modified in any way.</li>
+<li>If the <code>getNext</code> function cannot find a move in the given direction from the given source vertex, it will return the source vertex to the caller.</li>
+</ul>
+<h3 id="adjacency-matrix">Adjacency Matrix</h3>
+<p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoAdjMat.fsx">GitHub</a>.</em></p>
+<p>Per <a href="https://en.wikipedia.org/wiki/Adjacency_matrix">Wikipedia</a>, an adjacency matrix is &quot;a square matrix used to represent a finite graph&quot;.</p>
+<p>Since the AOC Day 2 implementation requires a directed graph, the adjacency matrix cannot be a symmetric matrix. For my implementation, the label for each row represents the &quot;from <code>Vertex</code>&quot;, the label for each column represents the &quot;to <code>Vertex</code>&quot; and the value at their intersection represents the <code>Direction</code> of movement.</p>
+<p>For example, when looking at the Day 2, Part 1 board below, you can read the first entry as &quot;When you start from Vertex 1 and go Right, you arrive at Vertex 2&quot;.</p>
+<p>Here is the text representation of the Day 2, Part 1 board as an adjacency matrix.</p>
+<pre><code>  123456789
+1 .R.D.....
+2 L.R.D....
+3 .L...D...
+4 U...R.D..
+5 .U.L.R.D.
+6 ..U.L...D
+7 ...U...R.
+8 ....U.L.R
+9 .....U.L.</code></pre>
+<p>And here is the text representation of the Day 2, Part 2 board.</p>
+<pre><code>  123456789ABCD
+1 ..D..........
+2 ..R..D.......
+3 UL.R..D......
+4 ..L....D.....
+5 .....R.......
+6 .U..L.R..D...
+7 ..U..L.R..D..
+8 ...U..L.R..D.
+9 .......L.....
+A .....U....R..
+B ......U..L.RD
+C .......U..L..
+D ..........U..</code></pre>
+<p>Internally, an adjacency matrix is stored as an <code>Array2D [,]</code>. The scheme used to create this data structure is somewhat fragile because it assumes that the first Vertex has a unique integer ID of <code>0</code> and that subsequent vertices' IDs are incremented deterministically without gaps. Since we control <code>Board</code> and <code>Vertex</code> creation, we can rely on this assumption for now but it would be a dangerous assumption to make in production code.</p>
+<p>The <code>getNext</code> function takes the following steps to move through the board:</p>
+<ol type="1">
+<li>Use the 2D array to find the row representing the <code>from</code> Vertex.</li>
+<li>Once found, go through the row and looks for the desired <code>Direction</code>.</li>
+<li>If found, use that column index to go from an integer to a <code>Vertex</code> using <code>Board.vertices</code>.</li>
+<li>If not found, return the <code>from</code> Vertex to the caller.</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getNext am from dir =
+<span class="kw">match</span> am <span class="kw">with</span>
+| AM(x, b) -&gt;
+  <span class="kw">let</span> fromInt = Vertex<span class="kw">.</span>toInt from
+  <span class="kw">let</span> colBase = Array2D<span class="kw">.</span>base2 x
+  x.[fromInt..fromInt,colBase..]
+  |&gt; Seq<span class="kw">.</span>cast&lt;Direction <span class="dt">option</span>&gt;
+  |&gt; Seq<span class="kw">.</span>tryFindIndex (( = ) (Some dir))
+  |&gt; <span class="kw">function</span>
+    | Some idx -&gt; Seq<span class="kw">.</span>item idx b.vertices
+    | None -&gt; from</code></pre></div>
+<h3 id="edge-list">Edge List</h3>
+<p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoEdgeList.fsx">GitHub</a>.</em></p>
+<p>An edge list is an extremely simple graph implementation which does not transform the original <code>Board</code>'s internal structures in any way. It is, as the name implies, an exhaustive list of all edges in the graph.</p>
+<p>Here is a visual representation of the Day 2, Part 1 board.</p>
+<pre><code>Edges: [&quot;4-&gt;U-&gt;1&quot;; &quot;7-&gt;U-&gt;4&quot;; &quot;5-&gt;U-&gt;2&quot;; &quot;8-&gt;U-&gt;5&quot;; &quot;6-&gt;U-&gt;3&quot;; &quot;9-&gt;U-&gt;6&quot;; &quot;1-&gt;D-&gt;4&quot;;
+&quot;4-&gt;D-&gt;7&quot;; &quot;2-&gt;D-&gt;5&quot;; &quot;5-&gt;D-&gt;8&quot;; &quot;3-&gt;D-&gt;6&quot;; &quot;6-&gt;D-&gt;9&quot;; &quot;1-&gt;R-&gt;2&quot;; &quot;2-&gt;R-&gt;3&quot;;
+&quot;4-&gt;R-&gt;5&quot;; &quot;5-&gt;R-&gt;6&quot;; &quot;7-&gt;R-&gt;8&quot;; &quot;8-&gt;R-&gt;9&quot;; &quot;2-&gt;L-&gt;1&quot;; &quot;3-&gt;L-&gt;2&quot;; &quot;5-&gt;L-&gt;4&quot;;
+&quot;6-&gt;L-&gt;5&quot;; &quot;8-&gt;L-&gt;7&quot;; &quot;9-&gt;L-&gt;8&quot;]</code></pre>
+<p>And the Day 2, Part 2 board.</p>
+<pre><code>Edges: [&quot;6-&gt;U-&gt;2&quot;; &quot;A-&gt;U-&gt;6&quot;; &quot;3-&gt;U-&gt;1&quot;; &quot;7-&gt;U-&gt;3&quot;; &quot;B-&gt;U-&gt;7&quot;; &quot;D-&gt;U-&gt;B&quot;; &quot;8-&gt;U-&gt;4&quot;;
+&quot;C-&gt;U-&gt;8&quot;; &quot;2-&gt;D-&gt;6&quot;; &quot;6-&gt;D-&gt;A&quot;; &quot;1-&gt;D-&gt;3&quot;; &quot;3-&gt;D-&gt;7&quot;; &quot;7-&gt;D-&gt;B&quot;; &quot;B-&gt;D-&gt;D&quot;;
+&quot;4-&gt;D-&gt;8&quot;; &quot;8-&gt;D-&gt;C&quot;; &quot;2-&gt;R-&gt;3&quot;; &quot;3-&gt;R-&gt;4&quot;; &quot;5-&gt;R-&gt;6&quot;; &quot;6-&gt;R-&gt;7&quot;; &quot;7-&gt;R-&gt;8&quot;;
+&quot;8-&gt;R-&gt;9&quot;; &quot;A-&gt;R-&gt;B&quot;; &quot;B-&gt;R-&gt;C&quot;; &quot;3-&gt;L-&gt;2&quot;; &quot;4-&gt;L-&gt;3&quot;; &quot;6-&gt;L-&gt;5&quot;; &quot;7-&gt;L-&gt;6&quot;;
+&quot;8-&gt;L-&gt;7&quot;; &quot;9-&gt;L-&gt;8&quot;; &quot;B-&gt;L-&gt;A&quot;; &quot;C-&gt;L-&gt;B&quot;]</code></pre>
+<p>The <code>getNext</code> function for an edge list is quite simple as well.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getNext (EL(b)) from dir =
+<span class="kw">let</span> destv =
+  Seq<span class="kw">.</span>tryFind
+    (<span class="kw">fun</span> (E(v1,d,v2)) -&gt; v1 = from &amp;&amp; d = dir)
+    b.edges
+<span class="kw">match</span> destv <span class="kw">with</span>
+| Some(E(_,_,v2)) -&gt; v2
+| None -&gt; from</code></pre></div>
+<h3 id="adjacency-list">Adjacency List</h3>
+<p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoAdjList.fsx">GitHub</a></em></p>
+<p>As opposed to an edge list, an adjacency list takes a <code>Vertex</code>-centric approach to representing graphs. Many implementations of adjacency lists internally use a data structure like a hashmap or hashtable, where the key is a <code>Vertex</code> and the value is a list of vertices (possibly with additional data) that the key can connect to.</p>
+<p>For my implementation, I used two separate data structures to implement the adjacency lists - <code>dict</code> and <code>Map</code>. The keys are <code>Vertex</code> instances and the values are lists of <code>Edge</code>s.</p>
+<p>Here is a visual representation of the Day 2, Part 1 board.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="dv">1</span>==&gt;<span class="dv">1</span>-&gt;D-&gt;<span class="dv">4</span>, <span class="dv">1</span>-&gt;R-&gt;<span class="dv">2</span>,
+<span class="dv">2</span>==&gt;<span class="dv">2</span>-&gt;D-&gt;<span class="dv">5</span>, <span class="dv">2</span>-&gt;R-&gt;<span class="dv">3</span>, <span class="dv">2</span>-&gt;L-&gt;<span class="dv">1</span>,
+<span class="dv">3</span>==&gt;<span class="dv">3</span>-&gt;D-&gt;<span class="dv">6</span>, <span class="dv">3</span>-&gt;L-&gt;<span class="dv">2</span>,
+<span class="dv">4</span>==&gt;<span class="dv">4</span>-&gt;U-&gt;<span class="dv">1</span>, <span class="dv">4</span>-&gt;D-&gt;<span class="dv">7</span>, <span class="dv">4</span>-&gt;R-&gt;<span class="dv">5</span>,
+<span class="dv">5</span>==&gt;<span class="dv">5</span>-&gt;U-&gt;<span class="dv">2</span>, <span class="dv">5</span>-&gt;D-&gt;<span class="dv">8</span>, <span class="dv">5</span>-&gt;R-&gt;<span class="dv">6</span>, <span class="dv">5</span>-&gt;L-&gt;<span class="dv">4</span>,
+<span class="dv">6</span>==&gt;<span class="dv">6</span>-&gt;U-&gt;<span class="dv">3</span>, <span class="dv">6</span>-&gt;D-&gt;<span class="dv">9</span>, <span class="dv">6</span>-&gt;L-&gt;<span class="dv">5</span>,
+<span class="dv">7</span>==&gt;<span class="dv">7</span>-&gt;U-&gt;<span class="dv">4</span>, <span class="dv">7</span>-&gt;R-&gt;<span class="dv">8</span>,
+<span class="dv">8</span>==&gt;<span class="dv">8</span>-&gt;U-&gt;<span class="dv">5</span>, <span class="dv">8</span>-&gt;R-&gt;<span class="dv">9</span>, <span class="dv">8</span>-&gt;L-&gt;<span class="dv">7</span>,
+<span class="dv">9</span>==&gt;<span class="dv">9</span>-&gt;U-&gt;<span class="dv">6</span>, <span class="dv">9</span>-&gt;L-&gt;<span class="dv">8</span>,</code></pre></div>
+<p>Here is the Day 2, Part 2 board.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="dv">1</span>==&gt;<span class="dv">1</span>-&gt;D-&gt;<span class="dv">3</span>,
+<span class="dv">2</span>==&gt;<span class="dv">2</span>-&gt;D-&gt;<span class="dv">6</span>, <span class="dv">2</span>-&gt;R-&gt;<span class="dv">3</span>,
+<span class="dv">3</span>==&gt;<span class="dv">3</span>-&gt;U-&gt;<span class="dv">1</span>, <span class="dv">3</span>-&gt;D-&gt;<span class="dv">7</span>, <span class="dv">3</span>-&gt;R-&gt;<span class="dv">4</span>, <span class="dv">3</span>-&gt;L-&gt;<span class="dv">2</span>,
+<span class="dv">4</span>==&gt;<span class="dv">4</span>-&gt;D-&gt;<span class="dv">8</span>, <span class="dv">4</span>-&gt;L-&gt;<span class="dv">3</span>,
+<span class="dv">5</span>==&gt;<span class="dv">5</span>-&gt;R-&gt;<span class="dv">6</span>,
+<span class="dv">6</span>==&gt;<span class="dv">6</span>-&gt;U-&gt;<span class="dv">2</span>, <span class="dv">6</span>-&gt;D-&gt;A, <span class="dv">6</span>-&gt;R-&gt;<span class="dv">7</span>, <span class="dv">6</span>-&gt;L-&gt;<span class="dv">5</span>,
+<span class="dv">7</span>==&gt;<span class="dv">7</span>-&gt;U-&gt;<span class="dv">3</span>, <span class="dv">7</span>-&gt;D-&gt;B, <span class="dv">7</span>-&gt;R-&gt;<span class="dv">8</span>, <span class="dv">7</span>-&gt;L-&gt;<span class="dv">6</span>,
+<span class="dv">8</span>==&gt;<span class="dv">8</span>-&gt;U-&gt;<span class="dv">4</span>, <span class="dv">8</span>-&gt;D-&gt;C, <span class="dv">8</span>-&gt;R-&gt;<span class="dv">9</span>, <span class="dv">8</span>-&gt;L-&gt;<span class="dv">7</span>,
+<span class="dv">9</span>==&gt;<span class="dv">9</span>-&gt;L-&gt;<span class="dv">8</span>,
+A==&gt;A-&gt;U-&gt;<span class="dv">6</span>, A-&gt;R-&gt;B,
+B==&gt;B-&gt;U-&gt;<span class="dv">7</span>, B-&gt;D-&gt;D, B-&gt;R-&gt;C, B-&gt;L-&gt;A,
+C==&gt;C-&gt;U-&gt;<span class="dv">8</span>, C-&gt;L-&gt;B,
+D==&gt;D-&gt;U-&gt;B,</code></pre></div>
+<p>The <code>getNext</code> implementations for both the <code>dict</code> and <code>Map</code> versions are very similar, only differing in how the various values are accessed.</p>
+<p>First, here is the <code>getNext</code> implementation for the <code>dict</code>-version of adjacency lists.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getNext (AL(d,_)) from dir : Vertex =
+<span class="kw">let</span> es = d.Item from
+<span class="kw">match</span> Seq<span class="kw">.</span>tryFind (<span class="kw">fun</span> (E(_,d,_)) -&gt; dir = d) es <span class="kw">with</span>
+| Some (E(_,_,v2)) -&gt; v2
+| None -&gt; from</code></pre></div>
+<p>And, similarly, here is the <code>Map</code>-version of <code>getNext</code>.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getNext (AL(d,_)) from dir =
+<span class="kw">let</span> es = Map<span class="kw">.</span>find from d
+<span class="kw">match</span> Seq<span class="kw">.</span>tryFind (<span class="kw">fun</span> (E(_,d,_)) -&gt; dir = d) es <span class="kw">with</span>
+| Some (E(_,_,v2)) -&gt; v2
+| None -&gt; from</code></pre></div>
+<h3 id="inductive-graph">Inductive Graph</h3>
+<p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoIndGraph.fsx">GitHub</a>.</em></p>
+<p>Finally, I used an inductive graph library, <a href="https://github.com/xyncro/hekate">Hekate</a>, as my final representation of a graph in F#. As I noted in my <a href="https://znprojects.blogspot.com/2017/03/aoc-2016-day-2-afterthoughts.html">last blog post</a>, inductive graphs were introduced by Erwig in his 2001 paper and then implemented (first) as the Haskell <a href="https://hackage.haskell.org/package/fgl">fgl</a> library.</p>
+<p>Inductive graphs are functional data structures that allow similar operations to other inductive data structures such as lists and trees.</p>
+<p>Despite using a library here instead of implementing the data structure myself, I actually enjoyed writing code with this library. The authors have done a great job of using familiar syntax and patterns with Hekate. The only downside I could find is that the Hekate library is almost completely undocumented. I learned how to use the library from the unit tests I found on <a href="https://github.com/xyncro/hekate/blob/master/tests/Hekate.Tests/Hekate.Tests.fs">GitHub</a> and from reading Erwig's original paper.</p>
+<p>Here is the Day 2, Part 1 board represented visually as an inductive graph.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">map
+[(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>),
+  (map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), L); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), U)], <span class="st">&quot;1&quot;</span>,
+   map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), R); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), D)]));
+ (V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>),
+  (map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), R); (V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), L); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), U)], <span class="st">&quot;2&quot;</span>,
+   map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), L); (V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), R); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), D)]));
+ (V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>),
+  (map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), R); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), U)], <span class="st">&quot;3&quot;</span>,
+   map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), L); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), D)]));
+ (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>),
+  (map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), D); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), L); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), U)], <span class="st">&quot;4&quot;</span>,
+   map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), U); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), R); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), D)]));
+ (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>),
+  (map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), D); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), R); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), L); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), U)], <span class="st">&quot;5&quot;</span>,
+   map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), U); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), L); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), R); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), D)]));
+ (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>),
+  (map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), D); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), R); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), U)], <span class="st">&quot;6&quot;</span>,
+   map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), U); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), L); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), D)]));
+ (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>),
+  (map [(V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), D); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), L)], <span class="st">&quot;7&quot;</span>,
+   map [(V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), U); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), R)]));
+ (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>),
+  (map [(V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), D); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), R); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), L)], <span class="st">&quot;8&quot;</span>,
+   map [(V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), U); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), L); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), R)]));
+ (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>),
+  (map [(V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), D); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), R)], <span class="st">&quot;9&quot;</span>,
+   map [(V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), U); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), L)]))]</code></pre></div>
+<p>And here is the Day 2, Part 2 board as an inductive graph. Please note that F# Interactive actually truncated the print out. I am assuming it did this due to the size of the map.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">map
+[(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), (map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), U)], <span class="st">&quot;1&quot;</span>, map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), D)]));
+ (V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>),
+  (map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), L); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), U)], <span class="st">&quot;2&quot;</span>,
+   map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), R); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), D)]));
+ (V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>),
+  (map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), D); (V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), R); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), L); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), U)], <span class="st">&quot;3&quot;</span>,
+   map [(V (<span class="dv">0</span>,<span class="st">&quot;1&quot;</span>), U); (V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), L); (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), R); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), D)]));
+ (V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>),
+  (map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), R); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), U)], <span class="st">&quot;4&quot;</span>,
+   map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), L); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), D)]));
+ (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), (map [(V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), L)], <span class="st">&quot;5&quot;</span>, map [(V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), R)]));
+ (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>),
+  (map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), D); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), R); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), L); (V (<span class="dv">9</span>,<span class="st">&quot;A&quot;</span>), U)], <span class="st">&quot;6&quot;</span>,
+   map [(V (<span class="dv">1</span>,<span class="st">&quot;2&quot;</span>), U); (V (<span class="dv">4</span>,<span class="st">&quot;5&quot;</span>), L); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), R); (V (<span class="dv">9</span>,<span class="st">&quot;A&quot;</span>), D)]));
+ (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>),
+  (map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), D); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), R); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), L); (V (<span class="dv">10</span>,<span class="st">&quot;B&quot;</span>), U)], <span class="st">&quot;7&quot;</span>,
+   map [(V (<span class="dv">2</span>,<span class="st">&quot;3&quot;</span>), U); (V (<span class="dv">5</span>,<span class="st">&quot;6&quot;</span>), L); (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), R); (V (<span class="dv">10</span>,<span class="st">&quot;B&quot;</span>), D)]));
+ (V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>),
+  (map [(V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), D); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), R); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), L); (V (<span class="dv">11</span>,<span class="st">&quot;C&quot;</span>), U)], <span class="st">&quot;8&quot;</span>,
+   map [(V (<span class="dv">3</span>,<span class="st">&quot;4&quot;</span>), U); (V (<span class="dv">6</span>,<span class="st">&quot;7&quot;</span>), L); (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), R); (V (<span class="dv">11</span>,<span class="st">&quot;C&quot;</span>), D)]));
+ (V (<span class="dv">8</span>,<span class="st">&quot;9&quot;</span>), (map [(V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), R)], <span class="st">&quot;9&quot;</span>, map [(V (<span class="dv">7</span>,<span class="st">&quot;8&quot;</span>), L)])); ...]</code></pre></div>
+<p>The <code>getNext</code> algorithm is relatively simple, considering that each <code>Vertex</code> stores information about both its predecessors and successors, i.e. what points to the <code>Vertex</code> and what the <code>Vertex</code> points to, respectively.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getNext ig from dir =
+<span class="kw">match</span> Graph<span class="kw">.</span>Nodes<span class="kw">.</span>successors from ig <span class="kw">with</span>
+| None -&gt; from
+| Some succs -&gt;
+  succs
+  |&gt; List<span class="kw">.</span>tryFind (<span class="kw">fun</span> (_,d) -&gt; d = dir)
+  |&gt; <span class="kw">function</span>
+    | None -&gt; from
+    | Some (dest,_) -&gt; dest</code></pre></div>
+<h2 id="testing">Testing</h2>
+<p><em>Code on <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoCommonTest.fsx">GitHub</a>.</em></p>
+<p>In the past, I have struggled quite a bit with properly implementing <a href="https://github.com/fscheck/FsCheck">FsCheck</a> tests. However, this time around, the combination of using FsCheck directly (as opposed to using it in combination with a testing library like <a href="https://github.com/mausch/Fuchu">Fuchu</a> or <a href="https://xunit.github.io/">Xunit</a>) and using it from F# script files (as opposed to compiled programs) made the experience much more pleasant and was a great learning experience.</p>
+<p>I wrote tests using <a href="https://github.com/fscheck/FsCheck">FsCheck</a> to ensure that my implementations were correct - and I'm glad I did. I found a number of elementary mistakes by having automated tests that I could easily run after each change to validate my results. For each data structure, I wrote 6 tests:</p>
+<ol type="1">
+<li>A printout of the Day 2, Part 1 board (to be verified manually).</li>
+<li>A printout of the Day 2, Part 2 board (to be verified manually).</li>
+<li>The Day 2, Part 1 test provided in the AOC problem description.</li>
+<li>The Day 2, Part 2 test provided in the AOC problem description.</li>
+<li>The Day 2, Part 1 problem stated in the AOC problem description.</li>
+<li>The Day 2, Part 2 problem stated in the AOC problem description.</li>
+</ol>
+<p>I could not automate the first two tests because each data structure's printout was quite different from the others.</p>
+<p>I was able to implement the last two tests because I had already solved Day 2's problems and knew the correct answers.</p>
+<h2 id="performance">Performance</h2>
+<p><em>Raw data on <a href="https://github.com/zakaluka/blog/blob/master/aoc/d2runtimes.xlsx">GitHub</a> - requires a program that can read XLSX files.</em></p>
+<p>After writing the five graph data structure implementations, I decided to run some basic performance tests on them. Having a generalized solution framework allowed me to attribute all differences in runtimes to the specific data structure being used.</p>
+<p>To perform the tests in the most &quot;unbiased&quot; way possible, I ran each test 5 times and took the average of the results. For each run, I executed the last 4 tests listed in the <a href="#testing">Testing</a> section.</p>
+<p>Without further ado, here are the results from using F# interactive's <code>#time</code> directive.</p>
+<table>
+<caption><em>Average run-time and garbage collection performance of the algorithms, sorted by the <code>Real average</code> column in ascending order.</em></caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Algorithm</th>
+<th style="text-align: right;">Real average</th>
+<th style="text-align: right;">CPU average</th>
+<th style="text-align: right;">Gen0 average</th>
+<th style="text-align: right;">Gen1 average</th>
+<th style="text-align: right;">Gen2 average</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Adjacency List Dict</td>
+<td style="text-align: right;">0.8452</td>
+<td style="text-align: right;">0.8326</td>
+<td style="text-align: right;">104.2</td>
+<td style="text-align: right;">25.2</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Adjacency List Map</td>
+<td style="text-align: right;">0.8684</td>
+<td style="text-align: right;">0.8576</td>
+<td style="text-align: right;">105.8</td>
+<td style="text-align: right;">21.6</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Inductive Graph</td>
+<td style="text-align: right;">0.9894</td>
+<td style="text-align: right;">0.9852</td>
+<td style="text-align: right;">136.2</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Adjacency Matrix</td>
+<td style="text-align: right;">4.4932</td>
+<td style="text-align: right;">4.4798</td>
+<td style="text-align: right;">530.6</td>
+<td style="text-align: right;">78.8</td>
+<td style="text-align: right;">0.6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Edge List</td>
+<td style="text-align: right;">359.2024</td>
+<td style="text-align: right;">359.1448</td>
+<td style="text-align: right;">68896.6</td>
+<td style="text-align: right;">61.4</td>
+<td style="text-align: right;">3.6</td>
+</tr>
+</tbody>
+</table>
+<p>I then took the Adjacency List Dict implementation as the baseline (since it was the fastest) and translated the same table into percentages.</p>
+<table>
+<caption><em>Average run-time and garbage collection performance as a percentage, with Adjacency List Dict as the baseline.</em></caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Algorithm</th>
+<th style="text-align: right;">Real</th>
+<th style="text-align: right;">CPU</th>
+<th style="text-align: right;">Gen0</th>
+<th style="text-align: right;">Gen1</th>
+<th style="text-align: right;">Gen2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Adjacency List Dict</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">-</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Adjacency List Map</td>
+<td style="text-align: right;">103%</td>
+<td style="text-align: right;">103%</td>
+<td style="text-align: right;">102%</td>
+<td style="text-align: right;">86%</td>
+<td style="text-align: right;">-</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Inductive Graph</td>
+<td style="text-align: right;">117%</td>
+<td style="text-align: right;">118%</td>
+<td style="text-align: right;">131%</td>
+<td style="text-align: right;">131%</td>
+<td style="text-align: right;">-</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Adjacency Matrix</td>
+<td style="text-align: right;">532%</td>
+<td style="text-align: right;">538%</td>
+<td style="text-align: right;">509%</td>
+<td style="text-align: right;">313%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Edge List</td>
+<td style="text-align: right;">42499%</td>
+<td style="text-align: right;">43135%</td>
+<td style="text-align: right;">66120%</td>
+<td style="text-align: right;">244%</td>
+<td style="text-align: right;">600%</td>
+</tr>
+</tbody>
+</table>
+<h3 id="observations">Observations</h3>
+<p>I was not surprised to find that the Edge List was the worst performer. However, I was surprised by how much worse its performance was, even on a small board, than the next worst algorithm, the Adjacency Matrix.</p>
+<p>Along those same lines, I was surprised by how poor the performance of the Adjacency Matrix was. However, I have a feeling that a more optimized implementation could do much better than my naive attempt. I believe my observation (as to my poor Adjacency Matrix writing skills) is accurate considering that it, along with the Adjacency List, is one of the most popular data structures for storing graphs.</p>
+<p>The inductive graph performed very well for a relatively new data structure that was intended, from the beginning, to be a new way of storing graphs in functional languages. Its run-time performance was approximately 17% worse than the baseline and memory performance (based on garbage collection) was approximately 31% worse than the baseline. For someone who needs a graph data structure for more than just a <code>getNext</code> function, it could be a serious contender and warrants additional testing.</p>
+<h2 id="next-steps">Next steps</h2>
+<p>I am satisfied with the results of this investigation into graph data structures in F#. I was able to implement all algorithms in a functional manner within a generic framework. I believe I have accomplished the goal that I set out with, which was to find a more robust and 'realistic' way of representing graph-like structures in F#.</p>
+<p>However, here are some items that I could not (or did not) complete and may be worth looking into:</p>
+<ul>
+<li>Change the base data structures to enforce more of the expected properties / invariants.</li>
+<li>Make the types for <code>Vertex</code>, <code>Edge</code>, <code>Direction</code>, etc. private and move them within their respective modules.</li>
+<li>Test with larger / more complex boards to better understand performance.</li>
+<li>Change the way boards are parsed from text files so that when the same character appears multiple times on a board, it is treated as the same Vertex (allowing for more complex board structures).</li>
+<li>Change boards to allow 3D representations.</li>
+<li>Remove copying from Adjacency Matrix's <code>create</code> function.</li>
+<li>Implement (or find existing libraries) and test more functions of graph data structures.</li>
+</ul>
+<p>I will now be returning to blogging about my solutions for Advent of Code 2016 problems. I am greatly looking forward to this because I have temporarily stopped solving more problems until I catch up with my blog posts. Hopefully, I will be able to post my Day 3 solutions in the next week.</p>
+<p>See you next time!</p>
+</body>
+</html>

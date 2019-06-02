@@ -13,4 +13,127 @@ blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-5187362024536711637
 blogger_orig_url: https://www.znprojects.com/2017/03/aoc-2016-day-2-afterthoughts.html
 ---
 
-  <style type="text/css">code{white-space: pre;}</style>  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.js"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.css" /><script type="text/javascript">window.onload = function(){var mathElements = document.getElementsByClassName("math");   for (var i=0; i < mathElements.length; i++)   {    var texText = mathElements[i].firstChild    katex.render(texText.data, mathElements[i])   }}   </script>  <!--[if lt IE 9]>    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>  <![endif]--><h1 id="aoc-2016---day-2-afterthoughts"><a href="http://adventofcode.com/2016/day/2">AOC 2016 - Day 2</a> Afterthoughts</h1><p>After I first finished coding the <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoMain.fsx">Advent of Code Day 2 challenge</a> and then again after I wrote the <a href="http://znprojects.blogspot.com/2017/03/aoc-2016-day-2.html">corresponding blog entry</a>, I felt dissatisfied with my solution.</p><p>The reasons for this are numerous:</p><ol type="1"><li>The keypad was never formally modeled as a type.</li><li>The <code>move</code> function basically encoded the constraints of the keypad, with rather brittle assumptions about what that keypad looks like.</li><li>The <code>move</code> function operated on <code>string</code>s, as opposed to a more 'proper' data type.</li></ol><p>For a toy problem such as the AOC challenge, the poor choice I made there is barely acceptable. However, in the 'real world', this type of decision can mean the difference between gibberish and maintainable code.</p><p>Let's take this problem one step further. If you look closely, you will see that the keypad is really just a specialized version of a general 2-dimensional (2D) board.</p><h2 id="how-can-a-2d-board-be-represented-as-a-functional-data-structure">How Can A 2D Board Be Represented As A Functional Data Structure?</h2><p>In general, 2D boards are often represented as some form of graph. We have some choices when it comes to representing a 2D board in F#. We are aided by the fact that, for the AOC problem, we don't 'need' to (though we may want to) change this data structure once it is created. This means that even if we use an inherently mutable data structure like an array, our logic can be written so that we do not to 'lose' immutability in this scenario.</p><p>If you were implementing an actual game where the state of the board changes (e.g. the locations of the players, threats, obstacles, etc.), your decision would require different analysis.</p><p>Here are some data structures we can use to represent a 2D board in F#:</p><ul><li>Adjacency matrix</li><li>Edge list</li><li>Adjacency list</li><li>Inductive graphs</li></ul><h2 id="adjacency-matrix">Adjacency matrix</h2><p>References: <a href="https://en.wikipedia.org/wiki/Adjacency_matrix">Wikipedia</a>, <a href="https://xlinux.nist.gov/dads/HTML/adjacencyMatrixRep.html">NIST</a>, <a href="https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/representing-graphs">Khan Academy</a></p><p>Per <a href="https://en.wikipedia.org/wiki/Adjacency_matrix">Wikipedia</a>, an adjacency matrix is &quot;a square matrix used to represent a finite graph&quot;.</p><p>F# comes with a convenient data structure called <code>Array2D</code> that we can use for this purpose. You can also represent a fixed-width 2D array as a 1D <code>array</code>/<code>list</code>/<code>seq</code> using <a href="https://en.wikipedia.org/wiki/Row-_and_column-major_order">row- or column-major order</a> to store the information.</p><p>In general, adjacency matrices have the following characteristics:</p><ul><li>Space: <ul><li><span class="math inline">\mathcal{O}(V^2)</span> space usage, where <span class="math inline">V</span> is the number of vertices.</li></ul></li><li>Speed: <ul><li><span class="math inline">\mathcal{O}(1)</span> constant time operations to: <ul><li>Check if an edge exists.</li><li>Add an edge.</li><li>Remove an edge.</li></ul></li><li><span class="math inline">\mathcal{O}(n)</span> time operations to: <ul><li>Get all the edges for a given vertex.</li></ul></li></ul></li></ul><h2 id="edge-list">Edge List</h2><p>References: <a href="https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/representing-graphs">Khan Academy</a></p><p>An edge list is a way to represent a graph by simply keeping an exhaustive list of all the edges. For undirected graphs, a 2-tuple is sufficient. For directed graphs, a 3-tuple (or more) may be required to hold additional information about the edge.</p><p>Though these data structures are quite simple, they work very well for smaller graphs and are easy to reason about. You can also optimize these structures (to a certain degree) by creatively reducing the number of edges that need to be tracked.</p><p>In general, edge lists have the following characteristics:</p><ul><li>Space: <ul><li><span class="math inline">\mathcal{O}(E)</span> space usage, where <span class="math inline">E</span> is the number of edges.</li></ul></li><li>Speed: <ul><li><span class="math inline">\mathcal{O}(n)</span> time operations to: <ul><li>Get all the edges for a given vertex (if using a list to store the edge list).</li></ul></li><li><span class="math inline">\mathcal{O}(1)</span> constant time operations to: <ul><li>Get all the edges for a given vertex (if using a hash-based structure to store the edge list).</li></ul></li><li><span class="math inline">\mathcal{O}(d)</span> speed to check if a particular edge exists, where <span class="math inline">d</span> is the degree of the vertex in question.</li></ul></li></ul><h2 id="adjacency-list">Adjacency List</h2><p>References: <a href="https://en.wikipedia.org/wiki/Adjacency_list">Wikipedia</a>, <a href="http://opendatastructures.org/ods-java/12_2_AdjacencyLists_Graph_a.html">Open Data Structures</a>, <a href="https://xlinux.nist.gov/dads/HTML/adjacencyListRep.html">NIST</a>, <a href="https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/representing-graphs">Khan Academy</a></p><p>Per <a href="https://en.wikipedia.org/wiki/Adjacency_list">Wikipedia</a>, an adjacency list is &quot;a collection of unordered lists used to represent a finite graph&quot;. It is a combination of an adjacency matrix and an edge list.</p><p>In F#, an adjacency list can use a number of data structures, including <code>list</code>, <code>map</code>, <code>dict</code>, etc. Hash-based structures (such as <code>dict</code>) should provide good performance due to faster access to the mapping from vertex to edges.</p><p>In general, adjacency lists have the following characteristics:</p><ul><li>Space: <ul><li><span class="math inline">2|E|</span> space usage for an undirected graph, where <span class="math inline">E</span> is the number of edges.</li><li><span class="math inline">|E|</span> space usage for a directed graph, where <span class="math inline">E</span> is the number of edges.</li></ul></li><li>Speed: <ul><li><span class="math inline">\mathcal{O}(d)</span> time operations to: <ul><li>Check if a particular edge exists, where <span class="math inline">d</span> is the degree of the vertex in question.</li></ul></li><li><span class="math inline">\mathcal{O}(1)</span> constant time operations to: <ul><li>Get all the edges for a given vertex.</li></ul></li></ul></li></ul><h2 id="inductive-graph">Inductive Graph</h2><p>References: <a href="https://web.engr.oregonstate.edu/~erwig/papers/InductiveGraphs_JFP01.pdf">Inductive Graphs and Functional Graph Algorithms</a>, <a href="https://hackage.haskell.org/package/fgl">Martin Erwig's Functional Graph Library</a>, <a href="https://xyncro.tech/hekate/">Hekate - Graphs for F#</a>, <a href="https://en.wikipedia.org/wiki/Inductive_data_type">Wikipedia</a></p><p>Per Martin Erwig's paper, there is a gap in how graph structures are represented and manipulated in functional languages, especially when it comes to performance as compared to imperative implementations (I completely, 100% agree). His paper lays out a strategy for creating a graph as an inductively defined data type. Inductive data types are algebraic data types or sum types (i.e. F# discriminated unions) which can also be recursive (e.g. the classic functional representation of a tree or list structure that is based on discriminated unions).</p><p>I actually found this paper when I was looking for information on how to represent graphs in functional languages. I strongly recommend that anyone who is interested in such data structures should read the <a href="https://web.engr.oregonstate.edu/~erwig/papers/InductiveGraphs_JFP01.pdf">original paper</a>.</p><p>Erwig's goal was to create a fully functional data structure whose performance is as close to imperative data structures (e.g. adjacency lists) as possible. Erwig performed some analysis based on his recommended implementation of inductive graphs using binary search trees, and I'll provide those characteristics here:</p><ul><li>Speed: <ul><li><span class="math inline">\mathcal{O}(n \log n)</span> time operations to: <ul><li>Insert new vertices into the graph</li></ul></li><li><span class="math inline">\mathcal{O}(n^2 \log n)</span> or <span class="math inline">\mathcal{O}(n \log^2 n)</span> time operations to: <ul><li>Delete vertices from the graph</li></ul></li></ul></li></ul><h2 id="so-what-comes-next">So, What Comes Next?</h2><p>Returning to our problem, we see that we have a number of implementation choices. Naively, we have up to 9 vertices and 36 edges in this example (Day 2, Part 1) or 13 vertices and 52 edges (Day 2, Part 2). This means that even a poorly selected data structure will most likely have minimum impact on the run speed.</p><p>When I first started the exercise of blogging about my AOC solutions, I had no intention of rewriting solutions. However, I did start this as a personal learning exercise, so I feel that this is a good use of my time (and will allow me to play with data structures and libraries that I've never used in F#).</p><p>I am currently going through the exercise of re-writing an implementation for Day 2 using the 4 choices presented above. My goal is to finish and write about those implementations before writing about the solution for AOC Day 3.</p><p>See you next time!</p>
+<style type="text/css">code{white-space: pre;}</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.js"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.css" /><script type="text/javascript">window.onload = function(){var mathElements = document.getElementsByClassName("math");
+for (var i=0; i < mathElements.length; i++)
+{
+ var texText = mathElements[i].firstChild
+ katex.render(texText.data, mathElements[i])
+}}
+</script>
+<!--[if lt IE 9]>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+<h1 id="aoc-2016---day-2-afterthoughts"><a href="http://adventofcode.com/2016/day/2">AOC 2016 - Day 2</a> Afterthoughts</h1>
+<p>After I first finished coding the <a href="https://github.com/zakaluka/fsaoc2016/blob/master/2/TwoMain.fsx">Advent of Code Day 2 challenge</a> and then again after I wrote the <a href="http://znprojects.blogspot.com/2017/03/aoc-2016-day-2.html">corresponding blog entry</a>, I felt dissatisfied with my solution.</p>
+<p>The reasons for this are numerous:</p>
+<ol type="1">
+<li>The keypad was never formally modeled as a type.</li>
+<li>The <code>move</code> function basically encoded the constraints of the keypad, with rather brittle assumptions about what that keypad looks like.</li>
+<li>The <code>move</code> function operated on <code>string</code>s, as opposed to a more 'proper' data type.</li>
+</ol>
+<p>For a toy problem such as the AOC challenge, the poor choice I made there is barely acceptable. However, in the 'real world', this type of decision can mean the difference between gibberish and maintainable code.</p>
+<p>Let's take this problem one step further. If you look closely, you will see that the keypad is really just a specialized version of a general 2-dimensional (2D) board.</p>
+<h2 id="how-can-a-2d-board-be-represented-as-a-functional-data-structure">How Can A 2D Board Be Represented As A Functional Data Structure?</h2>
+<p>In general, 2D boards are often represented as some form of graph. We have some choices when it comes to representing a 2D board in F#. We are aided by the fact that, for the AOC problem, we don't 'need' to (though we may want to) change this data structure once it is created. This means that even if we use an inherently mutable data structure like an array, our logic can be written so that we do not to 'lose' immutability in this scenario.</p>
+<p>If you were implementing an actual game where the state of the board changes (e.g. the locations of the players, threats, obstacles, etc.), your decision would require different analysis.</p>
+<p>Here are some data structures we can use to represent a 2D board in F#:</p>
+<ul>
+<li>Adjacency matrix</li>
+<li>Edge list</li>
+<li>Adjacency list</li>
+<li>Inductive graphs</li>
+</ul>
+<h2 id="adjacency-matrix">Adjacency matrix</h2>
+<p>References: <a href="https://en.wikipedia.org/wiki/Adjacency_matrix">Wikipedia</a>, <a href="https://xlinux.nist.gov/dads/HTML/adjacencyMatrixRep.html">NIST</a>, <a href="https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/representing-graphs">Khan Academy</a></p>
+<p>Per <a href="https://en.wikipedia.org/wiki/Adjacency_matrix">Wikipedia</a>, an adjacency matrix is &quot;a square matrix used to represent a finite graph&quot;.</p>
+<p>F# comes with a convenient data structure called <code>Array2D</code> that we can use for this purpose. You can also represent a fixed-width 2D array as a 1D <code>array</code>/<code>list</code>/<code>seq</code> using <a href="https://en.wikipedia.org/wiki/Row-_and_column-major_order">row- or column-major order</a> to store the information.</p>
+<p>In general, adjacency matrices have the following characteristics:</p>
+<ul>
+<li>Space:
+<ul>
+<li><span class="math inline">\mathcal{O}(V^2)</span> space usage, where <span class="math inline">V</span> is the number of vertices.</li>
+</ul></li>
+<li>Speed:
+<ul>
+<li><span class="math inline">\mathcal{O}(1)</span> constant time operations to:
+<ul>
+<li>Check if an edge exists.</li>
+<li>Add an edge.</li>
+<li>Remove an edge.</li>
+</ul></li>
+<li><span class="math inline">\mathcal{O}(n)</span> time operations to:
+<ul>
+<li>Get all the edges for a given vertex.</li>
+</ul></li>
+</ul></li>
+</ul>
+<h2 id="edge-list">Edge List</h2>
+<p>References: <a href="https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/representing-graphs">Khan Academy</a></p>
+<p>An edge list is a way to represent a graph by simply keeping an exhaustive list of all the edges. For undirected graphs, a 2-tuple is sufficient. For directed graphs, a 3-tuple (or more) may be required to hold additional information about the edge.</p>
+<p>Though these data structures are quite simple, they work very well for smaller graphs and are easy to reason about. You can also optimize these structures (to a certain degree) by creatively reducing the number of edges that need to be tracked.</p>
+<p>In general, edge lists have the following characteristics:</p>
+<ul>
+<li>Space:
+<ul>
+<li><span class="math inline">\mathcal{O}(E)</span> space usage, where <span class="math inline">E</span> is the number of edges.</li>
+</ul></li>
+<li>Speed:
+<ul>
+<li><span class="math inline">\mathcal{O}(n)</span> time operations to:
+<ul>
+<li>Get all the edges for a given vertex (if using a list to store the edge list).</li>
+</ul></li>
+<li><span class="math inline">\mathcal{O}(1)</span> constant time operations to:
+<ul>
+<li>Get all the edges for a given vertex (if using a hash-based structure to store the edge list).</li>
+</ul></li>
+<li><span class="math inline">\mathcal{O}(d)</span> speed to check if a particular edge exists, where <span class="math inline">d</span> is the degree of the vertex in question.</li>
+</ul></li>
+</ul>
+<h2 id="adjacency-list">Adjacency List</h2>
+<p>References: <a href="https://en.wikipedia.org/wiki/Adjacency_list">Wikipedia</a>, <a href="http://opendatastructures.org/ods-java/12_2_AdjacencyLists_Graph_a.html">Open Data Structures</a>, <a href="https://xlinux.nist.gov/dads/HTML/adjacencyListRep.html">NIST</a>, <a href="https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/representing-graphs">Khan Academy</a></p>
+<p>Per <a href="https://en.wikipedia.org/wiki/Adjacency_list">Wikipedia</a>, an adjacency list is &quot;a collection of unordered lists used to represent a finite graph&quot;. It is a combination of an adjacency matrix and an edge list.</p>
+<p>In F#, an adjacency list can use a number of data structures, including <code>list</code>, <code>map</code>, <code>dict</code>, etc. Hash-based structures (such as <code>dict</code>) should provide good performance due to faster access to the mapping from vertex to edges.</p>
+<p>In general, adjacency lists have the following characteristics:</p>
+<ul>
+<li>Space:
+<ul>
+<li><span class="math inline">2|E|</span> space usage for an undirected graph, where <span class="math inline">E</span> is the number of edges.</li>
+<li><span class="math inline">|E|</span> space usage for a directed graph, where <span class="math inline">E</span> is the number of edges.</li>
+</ul></li>
+<li>Speed:
+<ul>
+<li><span class="math inline">\mathcal{O}(d)</span> time operations to:
+<ul>
+<li>Check if a particular edge exists, where <span class="math inline">d</span> is the degree of the vertex in question.</li>
+</ul></li>
+<li><span class="math inline">\mathcal{O}(1)</span> constant time operations to:
+<ul>
+<li>Get all the edges for a given vertex.</li>
+</ul></li>
+</ul></li>
+</ul>
+<h2 id="inductive-graph">Inductive Graph</h2>
+<p>References: <a href="https://web.engr.oregonstate.edu/~erwig/papers/InductiveGraphs_JFP01.pdf">Inductive Graphs and Functional Graph Algorithms</a>, <a href="https://hackage.haskell.org/package/fgl">Martin Erwig's Functional Graph Library</a>, <a href="https://xyncro.tech/hekate/">Hekate - Graphs for F#</a>, <a href="https://en.wikipedia.org/wiki/Inductive_data_type">Wikipedia</a></p>
+<p>Per Martin Erwig's paper, there is a gap in how graph structures are represented and manipulated in functional languages, especially when it comes to performance as compared to imperative implementations (I completely, 100% agree). His paper lays out a strategy for creating a graph as an inductively defined data type. Inductive data types are algebraic data types or sum types (i.e. F# discriminated unions) which can also be recursive (e.g. the classic functional representation of a tree or list structure that is based on discriminated unions).</p>
+<p>I actually found this paper when I was looking for information on how to represent graphs in functional languages. I strongly recommend that anyone who is interested in such data structures should read the <a href="https://web.engr.oregonstate.edu/~erwig/papers/InductiveGraphs_JFP01.pdf">original paper</a>.</p>
+<p>Erwig's goal was to create a fully functional data structure whose performance is as close to imperative data structures (e.g. adjacency lists) as possible. Erwig performed some analysis based on his recommended implementation of inductive graphs using binary search trees, and I'll provide those characteristics here:</p>
+<ul>
+<li>Speed:
+<ul>
+<li><span class="math inline">\mathcal{O}(n \log n)</span> time operations to:
+<ul>
+<li>Insert new vertices into the graph</li>
+</ul></li>
+<li><span class="math inline">\mathcal{O}(n^2 \log n)</span> or <span class="math inline">\mathcal{O}(n \log^2 n)</span> time operations to:
+<ul>
+<li>Delete vertices from the graph</li>
+</ul></li>
+</ul></li>
+</ul>
+<h2 id="so-what-comes-next">So, What Comes Next?</h2>
+<p>Returning to our problem, we see that we have a number of implementation choices. Naively, we have up to 9 vertices and 36 edges in this example (Day 2, Part 1) or 13 vertices and 52 edges (Day 2, Part 2). This means that even a poorly selected data structure will most likely have minimum impact on the run speed.</p>
+<p>When I first started the exercise of blogging about my AOC solutions, I had no intention of rewriting solutions. However, I did start this as a personal learning exercise, so I feel that this is a good use of my time (and will allow me to play with data structures and libraries that I've never used in F#).</p>
+<p>I am currently going through the exercise of re-writing an implementation for Day 2 using the 4 choices presented above. My goal is to finish and write about those implementations before writing about the solution for AOC Day 3.</p>
+<p>See you next time!</p>

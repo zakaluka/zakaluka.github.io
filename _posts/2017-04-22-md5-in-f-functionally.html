@@ -12,4 +12,590 @@ blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-480737378274882479
 blogger_orig_url: https://www.znprojects.com/2017/04/md5-in-f-functionally.html
 ---
 
-  <style type="text/css">code{white-space: pre;}</style>  <style type="text/css">div.sourceCode { overflow-x: auto; } table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {   margin: 0; padding: 0; vertical-align: baseline; border: none; } table.sourceCode { width: 100%; line-height: 100%; background-color: #303030; color: #cccccc; } td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; } td.sourceCode { padding-left: 5px; } pre, code { color: #cccccc; background-color: #303030; } code > span.kw { color: #f0dfaf; } /* Keyword */ code > span.dt { color: #dfdfbf; } /* DataType */ code > span.dv { color: #dcdccc; } /* DecVal */ code > span.bn { color: #dca3a3; } /* BaseN */ code > span.fl { color: #c0bed1; } /* Float */ code > span.ch { color: #dca3a3; } /* Char */ code > span.st { color: #cc9393; } /* String */ code > span.co { color: #7f9f7f; } /* Comment */ code > span.ot { color: #efef8f; } /* Other */ code > span.al { color: #ffcfaf; } /* Alert */ code > span.fu { color: #efef8f; } /* Function */ code > span.er { color: #c3bf9f; } /* Error */ code > span.wa { color: #7f9f7f; font-weight: bold; } /* Warning */ code > span.cn { color: #dca3a3; font-weight: bold; } /* Constant */ code > span.sc { color: #dca3a3; } /* SpecialChar */ code > span.vs { color: #cc9393; } /* VerbatimString */ code > span.ss { color: #cc9393; } /* SpecialString */ code > span.im { } /* Import */ code > span.va { } /* Variable */ code > span.cf { color: #f0dfaf; } /* ControlFlow */ code > span.op { color: #f0efd0; } /* Operator */ code > span.bu { } /* BuiltIn */ code > span.ex { } /* Extension */ code > span.pp { color: #ffcfaf; font-weight: bold; } /* Preprocessor */ code > span.at { } /* Attribute */ code > span.do { color: #7f9f7f; } /* Documentation */ code > span.an { color: #7f9f7f; font-weight: bold; } /* Annotation */ code > span.cv { color: #7f9f7f; font-weight: bold; } /* CommentVar */ code > span.in { color: #7f9f7f; font-weight: bold; } /* Information */   </style>  <!--[if lt IE 9]>    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>  <![endif]-->  <style>  table {     width : 100%;     border-collapse: collapse   }      td, th {     vertical-align: top;     border: 1px solid black;   }   </style><h1>Table of Contents</h1><nav id="TOC"><ul><li><a href="#md5-in-f-functionally">MD5 in F#, Functionally</a></li><li><a href="#out-of-the-box-implementation">Out-of-the-box implementation</a></li><li><a href="#planning-the-implementation">Planning the implementation</a><ul><li><a href="#considerations">Considerations</a></li><li><a href="#mapping-from-wikipedia-to-f">Mapping from Wikipedia to F#</a></li></ul></li><li><a href="#implementation">Implementation</a><ul><li><a href="#step-1-define-the-shift-in-each-of-the-64-rounds">Step 1: Define the shift in each of the 64 rounds</a></li><li><a href="#step-2-calculate-the-binary-integer-portion-of-integer-sines">Step 2: Calculate the binary integer portion of integer sines</a></li><li><a href="#step-3-define-the-types">Step 3: Define the types</a></li><li><a href="#step-4-padding-the-message">Step 4: Padding the message</a></li><li><a href="#step-7-the-core-of-the-main-loop-yes-i-know-this-is-out-of-order">Step 7: The core of the main loop (Yes, I know this is out of order)</a></li><li><a href="#step-6-hash-a-single-512-bit-chunk">Step 6: Hash a single 512-bit chunk</a></li><li><a href="#step-5-process-the-entire-message-and-derive-a-single-md5-hash">Step 5: Process the entire message and derive a single MD5 hash</a></li></ul></li><li><a href="#testing">Testing</a></li><li><a href="#performance">Performance</a></li><li><a href="#lessons-learned">Lessons Learned</a></li></ul></nav><h1 id="md5-in-f-functionally">MD5 in F#, Functionally</h1><p><em>Code for this post can be found on <a href="https://github.com/zakaluka/fsaoc2016/tree/master/5">GitHub</a>.</em></p><p>The Advent of Code Day 5 problem presented a very interesting challenge - it required an MD5 hash function to get the final answer.</p><p>As my goal with the AOC challenges is to increase my knowledge of F#, I chose to:</p><ul><li>Implement my own version of the MD5 algorithm</li><li>Implement it functionally (no mutation, if possible)</li></ul><h1 id="out-of-the-box-implementation">Out-of-the-box implementation</h1><p>.NET has an out-of-the-box implementation of MD5, which can be accessed quite easily from F#. It resides in the <code>System.Security.Cryptography</code> namespace. Here is a function that takes in a <code>string</code> and outputs its hash as a <code>string</code>.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> md5ootb (msg: <span class="dt">string</span>) =<br />  <span class="kw">use</span> md5 = System<span class="kw">.</span>Security<span class="kw">.</span>Cryptography<span class="kw">.</span>MD5<span class="kw">.</span>Create()<br />  msg<br />  |&gt; System<span class="kw">.</span>Text<span class="kw">.</span>Encoding<span class="kw">.</span>ASCII<span class="kw">.</span>GetBytes<br />  |&gt; md5.ComputeHash<br />  |&gt; Seq<span class="kw">.</span>map (<span class="kw">fun</span> c -&gt; c.ToString(<span class="st">&quot;X2&quot;</span>))<br />  |&gt; Seq<span class="kw">.</span>reduce ( + )</code></pre></div><p>This helps immensely in two ways:</p><ul><li>It makes it very easy to check whether my hash function is working correctly because its output must match the OOTB MD5 algorithm's output.</li><li>It provides a baseline against which to compare performance.</li></ul><h1 id="planning-the-implementation">Planning the implementation</h1><p>First, let me just say that I have never implemented a &quot;cryptographic&quot; algorithm, such as a hash function, encryption algorithm, etc. I knew that the implementation would be more difficult than a normal algorithm and so I spent a considerable amount of time reading the following resources.</p><ol type="1"><li><a href="https://tools.ietf.org/html/rfc1321">RFC 1321: The MD5 Message-Digest Algorithm</a></li><li><a href="https://en.wikipedia.org/wiki/MD5#Algorithm">Wikipedia: MD5</a></li><li><a href="https://rosettacode.org/wiki/MD5/Implementation">Rosetta Code: MD5/Implementation</a></li></ol><p>The first two resources helped me understand the flow of logic. The last resource is a compilation of MD5 implementations collected in one spot and, luckily, written in multiple languages. This gave me different perspectives on how the code can be broken up, alternatives for implementation, etc.</p><p>I relied especially heavily on the Java, C#, Python, and Haskell implementations because those are the languages I am most familiar with.</p><p>For reference, here is the entire listing from Wikipedia.</p><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Note: All variables are unsigned 32 bit and wrap modulo 2^32 when calculating</span><br />var int[64] s, K<br /><br /><span class="co">&#39;//s specifies the per-round shift amounts</span><br />s[ 0..15] := { 7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22 }<br />s[16..31] := { 5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20 }<br />s[32..47] := { 4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23 }<br />s[48..63] := { 6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21 }<br /><br /><span class="co">&#39;//Use binary integer part of the sines of integers (Radians) as constants:</span><br /><span class="kw">for </span>i from 0 <span class="kw">to</span> 63<br />    K[i] := floor(2^32 × abs(sin(i + 1)))<br />end <span class="kw">for</span><br /><span class="co">&#39;//(Or just use the following precomputed table):</span><br /><span class="co">&#39;// ... (I did not use a pre-computed table, so I&#39;ve removed it for brevity sake)</span><br /><br /><span class="co">&#39;//Initialize variables:</span><br />var int a0 := 0x67452301   //A<br />var int b0 := 0xefcdab89   //B<br />var int c0 := 0x98badcfe   //C<br />var int d0 := 0x10325476   //D<br /><br /><span class="co">&#39;//Pre-processing: adding a single 1 bit</span><br />append <span class="st">&quot;1&quot;</span> bit <span class="kw">to</span> message<br /><span class="co">&#39;// Notice: the input bytes are considered as bits strings,</span><br /><span class="co">&#39;//  where the first bit is the most significant bit of the byte.[48]</span><br /><br /><br /><span class="co">&#39;//Pre-processing: padding with zeros</span><br />append <span class="st">&quot;0&quot;</span> bit until message length in bits ≡ 448 (mod 512)<br />append original length in bits mod (2 pow 64) <span class="kw">to</span> message<br /><br /><br /><span class="co">&#39;//Process the message in successive 512-bit chunks:</span><br /><span class="kw">for </span>each 512-bit chunk of message<br />    break chunk into sixteen 32-bit words M[j], 0 ≤ j ≤ 15<br /><span class="co">&#39;//Initialize hash value for this chunk:</span><br />    var int A := a0<br />    var int B := b0<br />    var int C := c0<br />    var int D := d0<br /><span class="co">&#39;//Main loop:</span><br />    <span class="kw">for </span>i from 0 <span class="kw">to</span> 63<br />        <span class="kw">if </span>0 ≤ i ≤ 15 <span class="kw">then</span><br />            F := (B <span class="kw">and</span> C) <span class="kw">or</span> ((<span class="kw">not</span> B) <span class="kw">and</span> D)<br />            g := i<br />        <span class="kw">else</span> <span class="kw">if </span>16 ≤ i ≤ 31<br />            F := (D <span class="kw">and</span> B) <span class="kw">or</span> ((<span class="kw">not</span> D) <span class="kw">and</span> C)<br />            g := (5×i + 1) mod 16<br />        <span class="kw">else</span> <span class="kw">if </span>32 ≤ i ≤ 47<br />            F := B <span class="kw">xor</span> C <span class="kw">xor</span> D<br />            g := (3×i + 5) mod 16<br />        <span class="kw">else</span> <span class="kw">if </span>48 ≤ i ≤ 63<br />            F := C <span class="kw">xor</span> (B <span class="kw">or</span> (<span class="kw">not</span> D))<br />            g := (7×i) mod 16<br /><span class="co">&#39;//Be wary of the below definitions of a,b,c,d</span><br />        dTemp := D<br />        D := C<br />        C := B<br />        B := B + leftrotate((A + F + K[i] + M[g]), s[i])<br />        A := dTemp<br />    end <span class="kw">for</span><br /><span class="co">&#39;//Add this chunk&#39;s hash to result so far:</span><br />    a0 := a0 + A<br />    b0 := b0 + B<br />    c0 := c0 + C<br />    d0 := d0 + D<br />end <span class="kw">for</span><br /><br />var <span class="dt">char</span> digest[16] := a0 append b0 append c0 append d0 <span class="co">&#39;//(Output is in little-endian)</span><br /><br /><span class="co">&#39;//leftrotate function definition</span><br />leftrotate (x, c)<br />    <span class="kw">return</span> (x &lt;&lt; c) binary <span class="kw">or</span> (x &gt;&gt; (32-c));</code></pre></div><h2 id="considerations">Considerations</h2><p>There are a few concerns I had about this implementation.</p><ol type="1"><li>The algorithm assumes that all values are stored in the little-endian format.</li><li>The algorithm requires a bitwise-left-rotate function, which F# does not provide.</li><li>How to store a 128-bit hash.</li></ol><p>Initially, and I'm not sure why I thought this, I was under the assumption that Intel CPUs use the big-endian format. However, they actually use little-endian, which makes that consideration irrelevant.</p><p>It took me an <em>embarrassing</em> amount of time to hunt down a bug where I forgot that the F# left-shift operator <code>&lt;&lt;&lt;</code> is NOT a left-rotate operator. Once I narrowed down on the bug, it was easy enough to implement a function to perform the rotations. However, this was a good lesson in never assuming anything when reading code - my eyes were just glazing over the <code>&lt;&lt;&lt;</code> operator, even though the problem was staring me in the face.</p><p>Finally, I chose to store the values as 4 <code>uint32</code> integers. This is similar to what the RFC authors, Wikipedia authors, and other implementations did on Rosetta Code. While F# does have the <code>uint64</code> type, it would have required translating all the 32-bit-based pseudo-code / code (introducing an element of risk) and I'm not sure what benefits, if any, it would have provided.</p><h2 id="mapping-from-wikipedia-to-f">Mapping from Wikipedia to F#</h2><p>I started my analysis and design phase by taking the pseudo-code from Wikipedia and mapping it to how I wanted to break up my implementation. I tried to use the same names for variables and, for consistency's sake, I ended up using the Wikipedia naming scheme.</p><p>Oddly enough, Wikipedia uses different variable names compared to the RFC pseudo-code and I did not find a good reason for why the original writers did this.</p><table><caption><em>Mapping from Wikipedia's pseudo-code to my F# implementation (function and value signatures).</em></caption><colgroup><col style="width: 3%" /><col style="width: 48%" /><col style="width: 48%" /></colgroup><thead><tr class="header"><th>#</th><th>Wikipedia</th><th>F#</th></tr></thead><tbody><tr class="odd"><td><p>1</p></td><td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//s specifies the per-round shift</span><br /><span class="co">&#39;//amounts</span><br />var int[64] s</code></pre></div></td><td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">val</span> s : <span class="dt">int</span> list</code></pre></div></td></tr><tr class="even"><td><p>2</p></td><td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Use binary integer part of the sines</span><br /><span class="co">&#39;//of integers (Radians) as constants:</span><br />var int[64] K</code></pre></div></td><td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">val</span> k : <span class="dt">uint32</span> list</code></pre></div></td></tr><tr class="odd"><td><p>3</p></td><td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Initialize variables:</span><br />var int a0<br />var int b0<br />var int c0<br />var int d0</code></pre></div></td><td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> MD5 =<br />  {a: <span class="dt">uint32</span>;<br />   b: <span class="dt">uint32</span>;<br />   c: <span class="dt">uint32</span>;<br />   d: <span class="dt">uint32</span>;}<br /><span class="kw">val</span> initialMD5 : MD5</code></pre></div></td></tr><tr class="even"><td><p>4</p></td><td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Pre-processing: adding a single 1 bit</span><br />append <span class="st">&quot;1&quot;</span> bit <span class="kw">to</span> message<br /><br /><span class="co">&#39;//Pre-processing: padding with zeros</span><br />append <span class="st">&quot;0&quot;</span> bit until message length in<br />bits ≡ 448 (mod 512)<br /><br />append original length in bits mod (2<br />pow 64) <span class="kw">to</span> message</code></pre></div></td><td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">val</span> padMessage : msg:<span class="dt">byte</span> [] -&gt; <span class="dt">byte</span> []</code></pre></div></td></tr><tr class="odd"><td><p>5</p></td><td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Process the message in successive</span><br /><span class="co">&#39;//512-bit chunks:</span><br /><span class="kw">for </span>each 512-bit chunk of message</code></pre></div></td><td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">//<span class="co"> Array.chunkBySize and Array.fold</span><br /><span class="kw">val</span> md5sum : msg:<span class="dt">string</span> -&gt; <span class="dt">string</span></code></pre></div></td></tr><tr class="even"><td><p>6</p></td><td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Initialize hash value for this chunk:</span><br />var int A, B, C, D<br /><br /><span class="co">&#39;//Main loop:</span><br /><span class="kw">for </span>i from 0 <span class="kw">to</span> 63<br />  <span class="co">&#39;// NOT THE CONTENTS OF THE LOOP</span><br />end <span class="kw">for</span><br /><br /><span class="co">&#39;//Add this chunk&#39;s hash to result so</span><br /><span class="co">&#39;//far:</span><br />a0, b0, c0, d0</code></pre></div></td><td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">//<span class="co"> List.fold</span><br /><span class="kw">val</span> md5plus : m:MD5 -&gt; bs:<span class="dt">byte</span> [] -&gt; MD5</code></pre></div></td></tr><tr class="odd"><td><p>7</p></td><td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Main loop: (contents)</span><br /><span class="kw">if </span>...<br /><span class="kw">else</span> <span class="kw">if </span>...<br /><span class="kw">else</span> <span class="kw">if </span>...<br /><span class="kw">else</span> <span class="kw">if </span>...<br /><br />dTemp, D, C, B, A</code></pre></div></td><td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">val</span> md5round : msg:<span class="dt">uint32</span> [] -&gt; MD5 -&gt;<br />i:<span class="dt">int</span> -&gt; MD5<br /><br />//<span class="co"> Includes:</span><br /><span class="kw">val</span> fghi : (<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span> -&gt; <span class="dt">uint32</span><br />-&gt; <span class="dt">uint32</span>) list<br /><br /><span class="kw">val</span> gIdxs : <span class="dt">int</span> list</code></pre></div></td></tr></tbody></table><h1 id="implementation">Implementation</h1><h2 id="step-1-define-the-shift-in-each-of-the-64-rounds">Step 1: Define the shift in each of the 64 rounds</h2><p>On the Wikipedia page, the per-round shift amounts are hard-coded as a 64-value <code>int</code> array.</p><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic">s[ 0..15] := { 7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22 }<br />s[16..31] := { 5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20 }<br />s[32..47] := { 4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23 }<br />s[48..63] := { 6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21 }</code></pre></div><p>In F#, I used some convenience functions in the <code>List</code> module to achieve the same result.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> s =<br />  [[<span class="dv">7</span>; <span class="dv">12</span>; <span class="dv">17</span>; <span class="dv">22</span>]; [<span class="dv">5</span>; <span class="dv">9</span>; <span class="dv">14</span>; <span class="dv">20</span>]; [<span class="dv">4</span>; <span class="dv">11</span>; <span class="dv">16</span>; <span class="dv">23</span>]; [<span class="dv">6</span>; <span class="dv">10</span>; <span class="dv">15</span>; <span class="dv">21</span>]]<br />  |&gt; List<span class="kw">.</span>collect (List<span class="kw">.</span>replicate <span class="dv">4</span>)<br />  |&gt; List<span class="kw">.</span>concat<br /><br /><span class="kw">val</span> s : <span class="dt">int</span> list</code></pre></div><h2 id="step-2-calculate-the-binary-integer-portion-of-integer-sines">Step 2: Calculate the binary integer portion of integer sines</h2><p>Wikipedia provides two methods of calculating the constants that are based on the <code>sine</code> function. First, here is the description from the RFC.</p><blockquote><p>... constructed from the sine function. Let T[i] denote the i-th element of the table, which is equal to the integer part of 4294967296 times abs(sin(i)), where i is in radians.</p></blockquote><p>Wikipedia's two methods of defining <code>K[i]</code> (Wikipedia's name for <code>T[i]</code>) are as follows:</p><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="kw">for </span>i from 0 <span class="kw">to</span> 63<br />    K[i] := floor(2^32 × abs(sin(i + 1)))<br />end <span class="kw">for</span><br /><span class="co">&#39;//(Or just use the following precomputed table):</span><br />K[ 0.. 3] := { 0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee }<br />K[ 4.. 7] := { 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501 }<br />K[ 8..11] := { 0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be }<br />K[12..15] := { 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821 }<br />K[16..19] := { 0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa }<br />K[20..23] := { 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8 }<br />K[24..27] := { 0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed }<br />K[28..31] := { 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a }<br />K[32..35] := { 0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c }<br />K[36..39] := { 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70 }<br />K[40..43] := { 0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05 }<br />K[44..47] := { 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665 }<br />K[48..51] := { 0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039 }<br />K[52..55] := { 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1 }<br />K[56..59] := { 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1 }<br />K[60..63] := { 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391 }</code></pre></div><p>For my solution, I chose to go the function route instead of hard-coding the table into the source code. This was primarily for brevity's sake. A side benefit was that it allowed me to put in a long and oddly satisfying function chain.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> k =<br />  [<span class="fl">1.</span> .. <span class="fl">64.</span>] |&gt; List<span class="kw">.</span>map (sin &gt;&gt; abs &gt;&gt; (( * ) (<span class="fl">2.</span>**<span class="fl">32.</span>)) &gt;&gt; floor &gt;&gt; <span class="dt">uint32</span>)<br /><br /><span class="kw">val</span> k : <span class="dt">uint32</span> list</code></pre></div><h2 id="step-3-define-the-types">Step 3: Define the types</h2><p>I defined one new type for this problem, <code>MD5</code>. This record holds an MD5 hash as 4 <code>uint32</code> values.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> MD5 =<br />  {<br />    a : <span class="dt">uint32</span><br />    b : <span class="dt">uint32</span><br />    c : <span class="dt">uint32</span><br />    d : <span class="dt">uint32</span><br />  }<br /><br /><span class="kw">let</span> initialMD5 =<br />  {<br />    a = <span class="bn">0x67452301</span>u<br />    b = <span class="bn">0xefcdab89</span>u<br />    c = <span class="bn">0x98badcfe</span>u<br />    d = <span class="bn">0x10325476</span>u<br />  }</code></pre></div><h2 id="step-4-padding-the-message">Step 4: Padding the message</h2><p>The MD5 algorithm doesn't require a message of a certain length, but instead adds padding so that the final message length is a multiple of 512 bits (or 64 bytes).</p><p>There are 3 steps involved in padding:</p><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Pre-processing: adding a single 1 bit</span><br />append <span class="st">&quot;1&quot;</span> bit <span class="kw">to</span> message<br /><br /><span class="co">&#39;//Pre-processing: padding with zeros</span><br />append <span class="st">&quot;0&quot;</span> bit until message length in bits ≡ 448 (mod 512)<br />append original length in bits mod (2 pow 64) <span class="kw">to</span> message</code></pre></div><p>This part actually gave me some trouble because I thought that I had to add one bit (containing <code>1</code>) to my message in the MSB (most significant bit) slot, and then start appending <code>0</code>s or the message length immediately after that. That turns out not to be the case, and reading the RFC and other implementations on Rosetta Code provided a good solution to the problem.</p><p>Essentially, following the message, we need to add a <code>0x80</code> 16-bit word followed by the length (restricted to 8 bytes). The intervening space, if any, is filled with <code>0</code> bytes.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> padMessage (msg : <span class="dt">byte</span> []) =<br />  <span class="kw">let</span> msgLen = Array<span class="kw">.</span>length msg<br />  <span class="kw">let</span> msgLenInBits = (<span class="dt">uint64</span> msgLen) * <span class="dv">8</span>UL<br /><br />  <span class="kw">let</span> lastSegmentSize =<br />    <span class="kw">let</span> m = msgLen % <span class="dv">64</span><br />    <span class="kw">if</span> m = <span class="dv">0</span> <span class="kw">then</span> <span class="dv">64</span><br />    <span class="kw">else</span> m<br /><br />  <span class="kw">let</span> padLen =<br />    <span class="dv">64</span> - lastSegmentSize + (<span class="kw">if</span> lastSegmentSize &gt;= <span class="dv">56</span> <span class="kw">then</span> <span class="dv">64</span><br />                            <span class="kw">else</span> <span class="dv">0</span>)<br /><br />  [|<br />    <span class="kw">yield</span> <span class="dv">128</span>uy<br />    <span class="kw">for</span> i <span class="kw">in</span> <span class="fl">2.</span>.padLen - <span class="dv">8</span> <span class="kw">do</span><br />      <span class="kw">yield</span> <span class="dv">0</span>uy<br />    <span class="kw">for</span> i <span class="kw">in</span> <span class="fl">0.</span>.<span class="dv">7</span> <span class="kw">do</span><br />      <span class="kw">yield</span> ((msgLenInBits &gt;&gt;&gt; (<span class="dv">8</span> * i)) |&gt; <span class="dt">byte</span>)<br />  |]<br />  |&gt; Array<span class="kw">.</span>append msg<br /><br /><span class="kw">val</span> padMessage : msg:<span class="dt">byte</span> [] -&gt; <span class="dt">byte</span> []</code></pre></div><p>This is the one part of the implementation that had the highest potential to be &quot;impure&quot;. Specifically, the part that constructs the padding. However, F# array comprehensions removed the need to mutate an <code>array</code> to construct the padding before it is appended to the <code>msg</code>.</p><h2 id="step-7-the-core-of-the-main-loop-yes-i-know-this-is-out-of-order">Step 7: The core of the main loop (Yes, I know this is out of order)</h2><p>The Wikipedia pseudo-code is written in an imperative manner where the main loops are encountered before we get to the meat of the hash construction algorithm. However, in order to explain my construction, I will start by looking at the implementation for a single iteration of the &quot;Main loop&quot;, and then build my way out from there.</p><p>The Wikipedia pseudo-code for this step is as follows.</p><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic">        <span class="kw">if </span>0 ≤ i ≤ 15 <span class="kw">then</span><br />            F := (B <span class="kw">and</span> C) <span class="kw">or</span> ((<span class="kw">not</span> B) <span class="kw">and</span> D)<br />            g := i<br />        <span class="kw">else</span> <span class="kw">if </span>16 ≤ i ≤ 31<br />            F := (D <span class="kw">and</span> B) <span class="kw">or</span> ((<span class="kw">not</span> D) <span class="kw">and</span> C)<br />            g := (5×i + 1) mod 16<br />        <span class="kw">else</span> <span class="kw">if </span>32 ≤ i ≤ 47<br />            F := B <span class="kw">xor</span> C <span class="kw">xor</span> D<br />            g := (3×i + 5) mod 16<br />        <span class="kw">else</span> <span class="kw">if </span>48 ≤ i ≤ 63<br />            F := C <span class="kw">xor</span> (B <span class="kw">or</span> (<span class="kw">not</span> D))<br />            g := (7×i) mod 16<br /><span class="co">&#39;//Be wary of the below definitions of a,b,c,d</span><br />        dTemp := D<br />        D := C<br />        C := B<br />        B := B + leftrotate((A + F + K[i] + M[g]), s[i])<br />        A := dTemp</code></pre></div><p>In F#, I have three separate constructs that we need to look at. First, I followed the technique used by a few other implementations and collected the functions represented by <code>F</code> in a function <code>list</code>. This allows index-based access to the correct function.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> fxyz x y z : <span class="dt">uint32</span> = (x &amp;&amp;&amp; y) ||| (~~~x &amp;&amp;&amp; z)<br /><span class="kw">let</span> gxyz x y z : <span class="dt">uint32</span> = (z &amp;&amp;&amp; x) ||| (~~~z &amp;&amp;&amp; y)<br /><span class="kw">let</span> hxyz x y z : <span class="dt">uint32</span> = x ^^^ y ^^^ z<br /><span class="kw">let</span> ixyz x y z : <span class="dt">uint32</span> = y ^^^ (x ||| ~~~z)<br /><br /><span class="kw">let</span> fghi =<br />  [fxyz; gxyz; hxyz; ixyz]<br />  |&gt; List<span class="kw">.</span>collect (List<span class="kw">.</span>replicate <span class="dv">16</span>)<br /><br /><span class="kw">val</span> fxyz : x:<span class="dt">uint32</span> -&gt; y:<span class="dt">uint32</span> -&gt; z:<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span><br /><span class="kw">val</span> gxyz : x:<span class="dt">uint32</span> -&gt; y:<span class="dt">uint32</span> -&gt; z:<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span><br /><span class="kw">val</span> hxyz : x:<span class="dt">uint32</span> -&gt; y:<span class="dt">uint32</span> -&gt; z:<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span><br /><span class="kw">val</span> ixyz : x:<span class="dt">uint32</span> -&gt; y:<span class="dt">uint32</span> -&gt; z:<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span><br /><span class="kw">val</span> fghi : (<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span> -&gt; <span class="dt">uint32</span> -&gt; <span class="dt">uint32</span>) list</code></pre></div><p>Second, I turned <code>g</code> into a set of functions and, as above, collected the pre-computed indices in a <code>list</code>.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> g1Idx = id<br /><span class="kw">let</span> g2Idx i = (<span class="dv">5</span>*i + <span class="dv">1</span>) % <span class="dv">16</span><br /><span class="kw">let</span> g3Idx i = (<span class="dv">3</span>*i + <span class="dv">5</span>) % <span class="dv">16</span><br /><span class="kw">let</span> g4Idx i = (<span class="dv">7</span>*i) % <span class="dv">16</span><br /><br /><span class="kw">let</span> gIdxs =<br />  [g1Idx; g2Idx; g3Idx; g4Idx]<br />  |&gt; List<span class="kw">.</span>collect (List<span class="kw">.</span>replicate <span class="dv">16</span>)<br />  |&gt; List<span class="kw">.</span>map2 (<span class="kw">fun</span> idx func -&gt; func idx) [<span class="fl">0.</span>.<span class="dv">63</span>]<br /><br /><span class="kw">val</span> g1Idx : (&#39;a -&gt; &#39;a)<br /><span class="kw">val</span> g2Idx : i:<span class="dt">int</span> -&gt; <span class="dt">int</span><br /><span class="kw">val</span> g3Idx : i:<span class="dt">int</span> -&gt; <span class="dt">int</span><br /><span class="kw">val</span> g4Idx : i:<span class="dt">int</span> -&gt; <span class="dt">int</span><br /><span class="kw">val</span> gIdxs : <span class="dt">int</span> list</code></pre></div><p>Finally, I implemented a single round of the MD5 computation.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> md5round (msg:<span class="dt">uint32</span>[]) {MD5<span class="kw">.</span>a=a; MD5<span class="kw">.</span>b=b; MD5<span class="kw">.</span>c=c; MD5<span class="kw">.</span>d=d} i =<br />  <span class="kw">let</span> rotateL32 r x = (x<span class="st">&lt;&lt;&lt;r) ||| (x&gt;&gt;</span>&gt;(<span class="dv">32</span>-r))<br />  <span class="kw">let</span> f = fghi.[i] b c d<br />  <span class="kw">let</span> a&#39; = b + (a + f + k.[i] + msg.[gIdxs.[i]] |&gt; rotateL32 s.[i])<br />  {a=d; b=a&#39;; c=b; d=c}<br /><br /><span class="kw">val</span> md5round : msg:<span class="dt">uint32</span> [] -&gt; MD5 -&gt; i:<span class="dt">int</span> -&gt; MD5</code></pre></div><p>The <code>md5round</code> function takes in the computed-so-far MD5 hash and an index, calculates the updated hash, and passes it back to the caller.</p><h2 id="step-6-hash-a-single-512-bit-chunk">Step 6: Hash a single 512-bit chunk</h2><p>This step actually implements the &quot;Main loop&quot;, using the logic we coded for a single iteration of the loop.</p><p>Here is Wikipedia's pseudo-code, although I have removed the text (replaced by a comment) that is part of Step 7.</p><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="kw">for </span>each 512-bit chunk of message<br />    break chunk into sixteen 32-bit words M[j], 0 ≤ j ≤ 15<br />//Initialize hash value <span class="kw">for </span>this chunk:<br />    var int A := a0<br />    var int B := b0<br />    var int C := c0<br />    var int D := d0<br />//Main loop:<br />    <span class="kw">for </span>i from 0 <span class="kw">to</span> 63<br />        <span class="co">&#39;// SEE STEP 7</span><br />    end <span class="kw">for</span><br /><span class="co">&#39;//Add this chunk&#39;s hash to result so far:</span><br />    a0 := a0 + A<br />    b0 := b0 + B<br />    c0 := c0 + C<br />    d0 := d0 + D<br />end <span class="kw">for</span></code></pre></div><p>Note that although Wikipedia uses the labels <code>a0</code>, <code>b0</code>, <code>c0</code>, and <code>d0</code>, these are mutable values that permanently change with each 512-bit chunk that is processed. Thus, each new 512-bit chunk starts with these 4 values that have been changed by all the previous chunks that have been processed.</p><p>The flow in this part of the code, without the details from Step 7, can be broken down into 3 parts:</p><ol type="1"><li>Start with an initial value.</li><li>Run an algorithm a limited number of times, wherein each execution of the algorithm uses the results from the previous run as the input.</li><li>Take the final value and continue with the overall flow.</li></ol><p>This is a perfect scenario for a <code>fold</code> operation. Here is the F# code from my implementation.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> md5plus m (bs:<span class="dt">byte</span>[]) =<br />  <span class="kw">let</span> msg =<br />    bs<br />    |&gt; Array<span class="kw">.</span>chunkBySize <span class="dv">4</span><br />    |&gt; Array<span class="kw">.</span>take <span class="dv">16</span><br />    |&gt; Array<span class="kw">.</span>map (<span class="kw">fun</span> elt -&gt; System<span class="kw">.</span>BitConverter<span class="kw">.</span>ToUInt32(elt, <span class="dv">0</span>))<br />  <span class="kw">let</span> m&#39; = List<span class="kw">.</span>fold (md5round msg) m [<span class="fl">0.</span>.<span class="dv">63</span>]<br />  {a=m.a+m&#39;.a; b=m.b+m&#39;.b; c=m.c+m&#39;.c; d=m.d+m&#39;.d}<br /><br /><span class="kw">val</span> md5plus : m:MD5 -&gt; bs:<span class="dt">byte</span> [] -&gt; MD5</code></pre></div><p><code>md5plus</code> expects the caller to pass in the initial value for the fold and the message that must be processed.</p><p><code>md5round</code> operates on a message (that will not change for a single 512-bit chunk), an MD5 value, and an index. Those are the values that <code>md5plus</code> is using for the <code>fold</code>.</p><p>At the end, <code>md5plus</code> passes back an updated MD5 hash which incorporates the changes derived from processing the given 512-bit chunk.</p><h2 id="step-5-process-the-entire-message-and-derive-a-single-md5-hash">Step 5: Process the entire message and derive a single MD5 hash</h2><p>The last step is to bring together all the individual pieces into a single algorithm that can:</p><ul><li>Take in a message of any length</li><li>Pad the message correctly</li><li>Calculate the MD5 hashes for each 512-bit chunk</li><li>Produce a single MD5 hash.</li></ul><p>Wikipedia's pseudo-code for this step is quite simple.</p><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic">var <span class="dt">char</span> digest[16] := a0 append b0 append c0 append d0<br /><span class="co">&#39;//(Output is in little-endian)</span></code></pre></div><p>However, since I built the solution as a set of functions, this final function must do a little more work.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> md5sum (msg: <span class="dt">string</span>) =<br />  System<span class="kw">.</span>Text<span class="kw">.</span>Encoding<span class="kw">.</span>ASCII<span class="kw">.</span>GetBytes msg<br />  |&gt; padMessage<br />  |&gt; Array<span class="kw">.</span>chunkBySize <span class="dv">64</span><br />  |&gt; Array<span class="kw">.</span>fold md5plus initialMD5<br />  |&gt; (<span class="kw">fun</span> {MD5<span class="kw">.</span>a=a; MD5<span class="kw">.</span>b=b; MD5<span class="kw">.</span>c=c; MD5<span class="kw">.</span>d=d} -&gt;<br />    System<span class="kw">.</span>BitConverter<span class="kw">.</span>GetBytes a<br />    |&gt; (<span class="kw">fun</span> x -&gt; System<span class="kw">.</span>BitConverter<span class="kw">.</span>GetBytes b |&gt; Array<span class="kw">.</span>append x)<br />    |&gt; (<span class="kw">fun</span> x -&gt; System<span class="kw">.</span>BitConverter<span class="kw">.</span>GetBytes c |&gt; Array<span class="kw">.</span>append x)<br />    |&gt; (<span class="kw">fun</span> x -&gt; System<span class="kw">.</span>BitConverter<span class="kw">.</span>GetBytes d |&gt; Array<span class="kw">.</span>append x))<br />  |&gt; Array<span class="kw">.</span>map (sprintf <span class="st">&quot;%02X&quot;</span>)<br />  |&gt; Array<span class="kw">.</span>reduce ( + )<br /><br /><span class="kw">val</span> md5sum : msg:<span class="dt">string</span> -&gt; <span class="dt">string</span></code></pre></div><p>The main part of the algorithm is just the first 4 lines:</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> md5sum (msg: <span class="dt">string</span>) =<br />  System<span class="kw">.</span>Text<span class="kw">.</span>Encoding<span class="kw">.</span>ASCII<span class="kw">.</span>GetBytes msg<br />  |&gt; padMessage<br />  |&gt; Array<span class="kw">.</span>chunkBySize <span class="dv">64</span><br />  |&gt; Array<span class="kw">.</span>fold md5plus initialMD5</code></pre></div><p>The rest of the function is devoted to converting the MD5 hash into a user-friendly representation.</p><h1 id="testing">Testing</h1><p>Based on the testing I've done so far, this algorithm works correctly and produces exactly the same results as the OOTB MD5 algorithm.</p><p>I first started by implementing the &quot;standard&quot; tests (originally specified in the RFC) and comparing the results with the OOTB algorithm.</p><p>Then, I added an <a href="https://github.com/fscheck/FsCheck">FsCheck</a> test that compared my algorithm against the OOTB one for 10,000 tests - all passed without any problems. Now that I've finally learned how to properly use FsCheck at a basic level, I'm starting to find it difficult to completely trust my results unless all the FsCheck tests pass. I don't think that this is necessarily a bad thing, because it tends to make explicit assumptions that I made in my code (e.g. for my MD5 algorithm, I assume that the original message is an actual string and not just a <code>NULL</code>).</p><h1 id="performance">Performance</h1><p><em>Raw data for performance measurements on <a href="https://github.com/zakaluka/blog/blob/master/aoc/d5runtimes.xlsx">GitHub</a>.</em></p><p>I measured performance by using the AOC Day 5, Part 1 problem, which computes thousands of MD5 hashes. Here are the results, derived using F# interactive's <code>#time</code> directive. I ran each test 3 times and averaged the results.</p><table><caption><em>Average run-time and garbage collection performance of the algorithms, in seconds</em></caption><thead><tr class="header"><th style="text-align: left;">Algorithm</th><th style="text-align: right;">Real</th><th style="text-align: right;">CPU</th><th style="text-align: right;">Gen0</th><th style="text-align: right;">Gen1</th><th style="text-align: right;">Gen2</th></tr></thead><tbody><tr class="odd"><td style="text-align: left;">OOTB</td><td style="text-align: right;">53.37</td><td style="text-align: right;">53.37</td><td style="text-align: right;">6780.33</td><td style="text-align: right;">6.00</td><td style="text-align: right;">0.67</td></tr><tr class="even"><td style="text-align: left;">Functional</td><td style="text-align: right;">172.79</td><td style="text-align: right;">172.76</td><td style="text-align: right;">34754.00</td><td style="text-align: right;">17.67</td><td style="text-align: right;">1.67</td></tr></tbody></table><p>Here is the same chart, but with percentages.</p><table><caption><em>Average run-time and garbage collection performance of the algorithms as a percentage, with the OOTB algorithm as the baseline.</em></caption><thead><tr class="header"><th style="text-align: left;">Algorithm</th><th style="text-align: right;">Real</th><th style="text-align: right;">CPU</th><th style="text-align: right;">Gen0</th><th style="text-align: right;">Gen1</th><th style="text-align: right;">Gen2</th></tr></thead><tbody><tr class="odd"><td style="text-align: left;">OOTB</td><td style="text-align: right;">100%</td><td style="text-align: right;">100%</td><td style="text-align: right;">100%</td><td style="text-align: right;">100%</td><td style="text-align: right;">100%</td></tr><tr class="even"><td style="text-align: left;">Functional</td><td style="text-align: right;">324%</td><td style="text-align: right;">324%</td><td style="text-align: right;">513%</td><td style="text-align: right;">294%</td><td style="text-align: right;">250%</td></tr></tbody></table><p>Obviously, my functional version of this algorithm is a LOT worse than the OOTB implementation.</p><h1 id="lessons-learned">Lessons Learned</h1><ol type="1"><li>Be extremely careful of assumptions when reading code. Each character and symbol should be analyzed to ensure that it is appropriate for the task at hand.</li><li>Define the <code>tee</code> function at the beginning of each project because it WILL be useful at some point.</li><li>It's been a goal of mine to implement a &quot;cryptographic&quot; algorithm for a few years now, but I never found the time before. I have to say that it was a lot of fun and I can't wait to do it again! <ul><li>Not strictly a lesson, unless that lesson is &quot;have fun with hobby projects&quot;.</li></ul></li></ol><p>See you next time!</p></body></html>
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; background-color: #303030; color: #cccccc; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; }
+td.sourceCode { padding-left: 5px; }
+pre, code { color: #cccccc; background-color: #303030; }
+code > span.kw { color: #f0dfaf; } /* Keyword */
+code > span.dt { color: #dfdfbf; } /* DataType */
+code > span.dv { color: #dcdccc; } /* DecVal */
+code > span.bn { color: #dca3a3; } /* BaseN */
+code > span.fl { color: #c0bed1; } /* Float */
+code > span.ch { color: #dca3a3; } /* Char */
+code > span.st { color: #cc9393; } /* String */
+code > span.co { color: #7f9f7f; } /* Comment */
+code > span.ot { color: #efef8f; } /* Other */
+code > span.al { color: #ffcfaf; } /* Alert */
+code > span.fu { color: #efef8f; } /* Function */
+code > span.er { color: #c3bf9f; } /* Error */
+code > span.wa { color: #7f9f7f; font-weight: bold; } /* Warning */
+code > span.cn { color: #dca3a3; font-weight: bold; } /* Constant */
+code > span.sc { color: #dca3a3; } /* SpecialChar */
+code > span.vs { color: #cc9393; } /* VerbatimString */
+code > span.ss { color: #cc9393; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { } /* Variable */
+code > span.cf { color: #f0dfaf; } /* ControlFlow */
+code > span.op { color: #f0efd0; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #ffcfaf; font-weight: bold; } /* Preprocessor */
+code > span.at { } /* Attribute */
+code > span.do { color: #7f9f7f; } /* Documentation */
+code > span.an { color: #7f9f7f; font-weight: bold; } /* Annotation */
+code > span.cv { color: #7f9f7f; font-weight: bold; } /* CommentVar */
+code > span.in { color: #7f9f7f; font-weight: bold; } /* Information */
+</style>
+<!--[if lt IE 9]>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+<style>
+table {
+  width : 100%;
+  border-collapse: collapse
+}
+
+td, th {
+  vertical-align: top;
+  border: 1px solid black;
+}
+</style>
+<h1 id="md5-in-f-functionally">MD5 in F#, Functionally</h1>
+<p><em>Code for this post can be found on <a href="https://github.com/zakaluka/fsaoc2016/tree/master/5">GitHub</a>.</em></p>
+<p>The Advent of Code Day 5 problem presented a very interesting challenge - it required an MD5 hash function to get the final answer.</p>
+<p>As my goal with the AOC challenges is to increase my knowledge of F#, I chose to:</p>
+<ul>
+<li>Implement my own version of the MD5 algorithm</li>
+<li>Implement it functionally (no mutation, if possible)</li>
+</ul>
+<h1 id="out-of-the-box-implementation">Out-of-the-box implementation</h1>
+<p>.NET has an out-of-the-box implementation of MD5, which can be accessed quite easily from F#. It resides in the <code>System.Security.Cryptography</code> namespace. Here is a function that takes in a <code>string</code> and outputs its hash as a <code>string</code>.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> md5ootb (msg: <span class="dt">string</span>) =
+<span class="kw">use</span> md5 = System<span class="kw">.</span>Security<span class="kw">.</span>Cryptography<span class="kw">.</span>MD5<span class="kw">.</span>Create()
+msg
+|&gt; System<span class="kw">.</span>Text<span class="kw">.</span>Encoding<span class="kw">.</span>ASCII<span class="kw">.</span>GetBytes
+|&gt; md5.ComputeHash
+|&gt; Seq<span class="kw">.</span>map (<span class="kw">fun</span> c -&gt; c.ToString(<span class="st">&quot;X2&quot;</span>))
+|&gt; Seq<span class="kw">.</span>reduce ( + )</code></pre></div>
+<p>This helps immensely in two ways:</p>
+<ul>
+<li>It makes it very easy to check whether my hash function is working correctly because its output must match the OOTB MD5 algorithm's output.</li>
+<li>It provides a baseline against which to compare performance.</li>
+</ul>
+<h1 id="planning-the-implementation">Planning the implementation</h1>
+<p>First, let me just say that I have never implemented a &quot;cryptographic&quot; algorithm, such as a hash function, encryption algorithm, etc. I knew that the implementation would be more difficult than a normal algorithm and so I spent a considerable amount of time reading the following resources.</p>
+<ol type="1">
+<li><a href="https://tools.ietf.org/html/rfc1321">RFC 1321: The MD5 Message-Digest Algorithm</a></li>
+<li><a href="https://en.wikipedia.org/wiki/MD5#Algorithm">Wikipedia: MD5</a></li>
+<li><a href="https://rosettacode.org/wiki/MD5/Implementation">Rosetta Code: MD5/Implementation</a></li>
+</ol>
+<p>The first two resources helped me understand the flow of logic. The last resource is a compilation of MD5 implementations collected in one spot and, luckily, written in multiple languages. This gave me different perspectives on how the code can be broken up, alternatives for implementation, etc.</p>
+<p>I relied especially heavily on the Java, C#, Python, and Haskell implementations because those are the languages I am most familiar with.</p>
+<p>For reference, here is the entire listing from Wikipedia.</p>
+<div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Note: All variables are unsigned 32 bit and wrap modulo 2^32 when calculating</span>
+var int[64] s, K
+
+<span class="co">&#39;//s specifies the per-round shift amounts</span>
+s[ 0..15] := { 7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22 }
+s[16..31] := { 5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20 }
+s[32..47] := { 4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23 }
+s[48..63] := { 6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21 }
+
+<span class="co">&#39;//Use binary integer part of the sines of integers (Radians) as constants:</span>
+<span class="kw">for </span>i from 0 <span class="kw">to</span> 63
+  K[i] := floor(2^32 × abs(sin(i + 1)))
+end <span class="kw">for</span>
+<span class="co">&#39;//(Or just use the following precomputed table):</span>
+<span class="co">&#39;// ... (I did not use a pre-computed table, so I&#39;ve removed it for brevity sake)</span>
+
+<span class="co">&#39;//Initialize variables:</span>
+var int a0 := 0x67452301   //A
+var int b0 := 0xefcdab89   //B
+var int c0 := 0x98badcfe   //C
+var int d0 := 0x10325476   //D
+
+<span class="co">&#39;//Pre-processing: adding a single 1 bit</span>
+append <span class="st">&quot;1&quot;</span> bit <span class="kw">to</span> message
+<span class="co">&#39;// Notice: the input bytes are considered as bits strings,</span>
+<span class="co">&#39;//  where the first bit is the most significant bit of the byte.[48]</span>
+
+
+<span class="co">&#39;//Pre-processing: padding with zeros</span>
+append <span class="st">&quot;0&quot;</span> bit until message length in bits ≡ 448 (mod 512)
+append original length in bits mod (2 pow 64) <span class="kw">to</span> message
+
+
+<span class="co">&#39;//Process the message in successive 512-bit chunks:</span>
+<span class="kw">for </span>each 512-bit chunk of message
+  break chunk into sixteen 32-bit words M[j], 0 ≤ j ≤ 15
+<span class="co">&#39;//Initialize hash value for this chunk:</span>
+  var int A := a0
+  var int B := b0
+  var int C := c0
+  var int D := d0
+<span class="co">&#39;//Main loop:</span>
+  <span class="kw">for </span>i from 0 <span class="kw">to</span> 63
+      <span class="kw">if </span>0 ≤ i ≤ 15 <span class="kw">then</span>
+          F := (B <span class="kw">and</span> C) <span class="kw">or</span> ((<span class="kw">not</span> B) <span class="kw">and</span> D)
+          g := i
+      <span class="kw">else</span> <span class="kw">if </span>16 ≤ i ≤ 31
+          F := (D <span class="kw">and</span> B) <span class="kw">or</span> ((<span class="kw">not</span> D) <span class="kw">and</span> C)
+          g := (5×i + 1) mod 16
+      <span class="kw">else</span> <span class="kw">if </span>32 ≤ i ≤ 47
+          F := B <span class="kw">xor</span> C <span class="kw">xor</span> D
+          g := (3×i + 5) mod 16
+      <span class="kw">else</span> <span class="kw">if </span>48 ≤ i ≤ 63
+          F := C <span class="kw">xor</span> (B <span class="kw">or</span> (<span class="kw">not</span> D))
+          g := (7×i) mod 16
+<span class="co">&#39;//Be wary of the below definitions of a,b,c,d</span>
+      dTemp := D
+      D := C
+      C := B
+      B := B + leftrotate((A + F + K[i] + M[g]), s[i])
+      A := dTemp
+  end <span class="kw">for</span>
+<span class="co">&#39;//Add this chunk&#39;s hash to result so far:</span>
+  a0 := a0 + A
+  b0 := b0 + B
+  c0 := c0 + C
+  d0 := d0 + D
+end <span class="kw">for</span>
+
+var <span class="dt">char</span> digest[16] := a0 append b0 append c0 append d0 <span class="co">&#39;//(Output is in little-endian)</span>
+
+<span class="co">&#39;//leftrotate function definition</span>
+leftrotate (x, c)
+  <span class="kw">return</span> (x &lt;&lt; c) binary <span class="kw">or</span> (x &gt;&gt; (32-c));</code></pre></div>
+<h2 id="considerations">Considerations</h2>
+<p>There are a few concerns I had about this implementation.</p>
+<ol type="1">
+<li>The algorithm assumes that all values are stored in the little-endian format.</li>
+<li>The algorithm requires a bitwise-left-rotate function, which F# does not provide.</li>
+<li>How to store a 128-bit hash.</li>
+</ol>
+<p>Initially, and I'm not sure why I thought this, I was under the assumption that Intel CPUs use the big-endian format. However, they actually use little-endian, which makes that consideration irrelevant.</p>
+<p>It took me an <em>embarrassing</em> amount of time to hunt down a bug where I forgot that the F# left-shift operator <code>&lt;&lt;&lt;</code> is NOT a left-rotate operator. Once I narrowed down on the bug, it was easy enough to implement a function to perform the rotations. However, this was a good lesson in never assuming anything when reading code - my eyes were just glazing over the <code>&lt;&lt;&lt;</code> operator, even though the problem was staring me in the face.</p>
+<p>Finally, I chose to store the values as 4 <code>uint32</code> integers. This is similar to what the RFC authors, Wikipedia authors, and other implementations did on Rosetta Code. While F# does have the <code>uint64</code> type, it would have required translating all the 32-bit-based pseudo-code / code (introducing an element of risk) and I'm not sure what benefits, if any, it would have provided.</p>
+<h2 id="mapping-from-wikipedia-to-f">Mapping from Wikipedia to F#</h2>
+<p>I started my analysis and design phase by taking the pseudo-code from Wikipedia and mapping it to how I wanted to break up my implementation. I tried to use the same names for variables and, for consistency's sake, I ended up using the Wikipedia naming scheme.</p>
+<p>Oddly enough, Wikipedia uses different variable names compared to the RFC pseudo-code and I did not find a good reason for why the original writers did this.</p>
+<table>
+<caption><em>Mapping from Wikipedia's pseudo-code to my F# implementation (function and value signatures).</em></caption>
+<colgroup>
+<col style="width: 3%" />
+<col style="width: 48%" />
+<col style="width: 48%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Wikipedia</th>
+<th>F#</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><p>1</p></td>
+<td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//s specifies the per-round shift</span>
+<span class="co">&#39;//amounts</span>
+var int[64] s</code></pre></div></td>
+<td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">val</span> s : <span class="dt">int</span> list</code></pre></div></td>
+</tr>
+<tr class="even">
+<td><p>2</p></td>
+<td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Use binary integer part of the sines</span>
+<span class="co">&#39;//of integers (Radians) as constants:</span>
+var int[64] K</code></pre></div></td>
+<td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">val</span> k : <span class="dt">uint32</span> list</code></pre></div></td>
+</tr>
+<tr class="odd">
+<td><p>3</p></td>
+<td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Initialize variables:</span>
+var int a0
+var int b0
+var int c0
+var int d0</code></pre></div></td>
+<td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> MD5 =
+{a: <span class="dt">uint32</span>;
+ b: <span class="dt">uint32</span>;
+ c: <span class="dt">uint32</span>;
+ d: <span class="dt">uint32</span>;}
+<span class="kw">val</span> initialMD5 : MD5</code></pre></div></td>
+</tr>
+<tr class="even">
+<td><p>4</p></td>
+<td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Pre-processing: adding a single 1 bit</span>
+append <span class="st">&quot;1&quot;</span> bit <span class="kw">to</span> message
+
+<span class="co">&#39;//Pre-processing: padding with zeros</span>
+append <span class="st">&quot;0&quot;</span> bit until message length in
+bits ≡ 448 (mod 512)
+
+append original length in bits mod (2
+pow 64) <span class="kw">to</span> message</code></pre></div></td>
+<td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">val</span> padMessage : msg:<span class="dt">byte</span> [] -&gt; <span class="dt">byte</span> []</code></pre></div></td>
+</tr>
+<tr class="odd">
+<td><p>5</p></td>
+<td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Process the message in successive</span>
+<span class="co">&#39;//512-bit chunks:</span>
+<span class="kw">for </span>each 512-bit chunk of message</code></pre></div></td>
+<td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">//<span class="co"> Array.chunkBySize and Array.fold</span>
+<span class="kw">val</span> md5sum : msg:<span class="dt">string</span> -&gt; <span class="dt">string</span></code></pre></div></td>
+</tr>
+<tr class="even">
+<td><p>6</p></td>
+<td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Initialize hash value for this chunk:</span>
+var int A, B, C, D
+
+<span class="co">&#39;//Main loop:</span>
+<span class="kw">for </span>i from 0 <span class="kw">to</span> 63
+<span class="co">&#39;// NOT THE CONTENTS OF THE LOOP</span>
+end <span class="kw">for</span>
+
+<span class="co">&#39;//Add this chunk&#39;s hash to result so</span>
+<span class="co">&#39;//far:</span>
+a0, b0, c0, d0</code></pre></div></td>
+<td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">//<span class="co"> List.fold</span>
+<span class="kw">val</span> md5plus : m:MD5 -&gt; bs:<span class="dt">byte</span> [] -&gt; MD5</code></pre></div></td>
+</tr>
+<tr class="odd">
+<td><p>7</p></td>
+<td><div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Main loop: (contents)</span>
+<span class="kw">if </span>...
+<span class="kw">else</span> <span class="kw">if </span>...
+<span class="kw">else</span> <span class="kw">if </span>...
+<span class="kw">else</span> <span class="kw">if </span>...
+
+dTemp, D, C, B, A</code></pre></div></td>
+<td><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">val</span> md5round : msg:<span class="dt">uint32</span> [] -&gt; MD5 -&gt;
+i:<span class="dt">int</span> -&gt; MD5
+
+//<span class="co"> Includes:</span>
+<span class="kw">val</span> fghi : (<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span> -&gt; <span class="dt">uint32</span>
+-&gt; <span class="dt">uint32</span>) list
+
+<span class="kw">val</span> gIdxs : <span class="dt">int</span> list</code></pre></div></td>
+</tr>
+</tbody>
+</table>
+<h1 id="implementation">Implementation</h1>
+<h2 id="step-1-define-the-shift-in-each-of-the-64-rounds">Step 1: Define the shift in each of the 64 rounds</h2>
+<p>On the Wikipedia page, the per-round shift amounts are hard-coded as a 64-value <code>int</code> array.</p>
+<div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic">s[ 0..15] := { 7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22 }
+s[16..31] := { 5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20 }
+s[32..47] := { 4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23 }
+s[48..63] := { 6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21 }</code></pre></div>
+<p>In F#, I used some convenience functions in the <code>List</code> module to achieve the same result.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> s =
+[[<span class="dv">7</span>; <span class="dv">12</span>; <span class="dv">17</span>; <span class="dv">22</span>]; [<span class="dv">5</span>; <span class="dv">9</span>; <span class="dv">14</span>; <span class="dv">20</span>]; [<span class="dv">4</span>; <span class="dv">11</span>; <span class="dv">16</span>; <span class="dv">23</span>]; [<span class="dv">6</span>; <span class="dv">10</span>; <span class="dv">15</span>; <span class="dv">21</span>]]
+|&gt; List<span class="kw">.</span>collect (List<span class="kw">.</span>replicate <span class="dv">4</span>)
+|&gt; List<span class="kw">.</span>concat
+
+<span class="kw">val</span> s : <span class="dt">int</span> list</code></pre></div>
+<h2 id="step-2-calculate-the-binary-integer-portion-of-integer-sines">Step 2: Calculate the binary integer portion of integer sines</h2>
+<p>Wikipedia provides two methods of calculating the constants that are based on the <code>sine</code> function. First, here is the description from the RFC.</p>
+<blockquote>
+<p>... constructed from the sine function. Let T[i] denote the i-th element of the table, which is equal to the integer part of 4294967296 times abs(sin(i)), where i is in radians.</p>
+</blockquote>
+<p>Wikipedia's two methods of defining <code>K[i]</code> (Wikipedia's name for <code>T[i]</code>) are as follows:</p>
+<div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="kw">for </span>i from 0 <span class="kw">to</span> 63
+  K[i] := floor(2^32 × abs(sin(i + 1)))
+end <span class="kw">for</span>
+<span class="co">&#39;//(Or just use the following precomputed table):</span>
+K[ 0.. 3] := { 0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee }
+K[ 4.. 7] := { 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501 }
+K[ 8..11] := { 0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be }
+K[12..15] := { 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821 }
+K[16..19] := { 0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa }
+K[20..23] := { 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8 }
+K[24..27] := { 0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed }
+K[28..31] := { 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a }
+K[32..35] := { 0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c }
+K[36..39] := { 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70 }
+K[40..43] := { 0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05 }
+K[44..47] := { 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665 }
+K[48..51] := { 0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039 }
+K[52..55] := { 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1 }
+K[56..59] := { 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1 }
+K[60..63] := { 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391 }</code></pre></div>
+<p>For my solution, I chose to go the function route instead of hard-coding the table into the source code. This was primarily for brevity's sake. A side benefit was that it allowed me to put in a long and oddly satisfying function chain.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> k =
+[<span class="fl">1.</span> .. <span class="fl">64.</span>] |&gt; List<span class="kw">.</span>map (sin &gt;&gt; abs &gt;&gt; (( * ) (<span class="fl">2.</span>**<span class="fl">32.</span>)) &gt;&gt; floor &gt;&gt; <span class="dt">uint32</span>)
+
+<span class="kw">val</span> k : <span class="dt">uint32</span> list</code></pre></div>
+<h2 id="step-3-define-the-types">Step 3: Define the types</h2>
+<p>I defined one new type for this problem, <code>MD5</code>. This record holds an MD5 hash as 4 <code>uint32</code> values.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> MD5 =
+{
+  a : <span class="dt">uint32</span>
+  b : <span class="dt">uint32</span>
+  c : <span class="dt">uint32</span>
+  d : <span class="dt">uint32</span>
+}
+
+<span class="kw">let</span> initialMD5 =
+{
+  a = <span class="bn">0x67452301</span>u
+  b = <span class="bn">0xefcdab89</span>u
+  c = <span class="bn">0x98badcfe</span>u
+  d = <span class="bn">0x10325476</span>u
+}</code></pre></div>
+<h2 id="step-4-padding-the-message">Step 4: Padding the message</h2>
+<p>The MD5 algorithm doesn't require a message of a certain length, but instead adds padding so that the final message length is a multiple of 512 bits (or 64 bytes).</p>
+<p>There are 3 steps involved in padding:</p>
+<div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="co">&#39;//Pre-processing: adding a single 1 bit</span>
+append <span class="st">&quot;1&quot;</span> bit <span class="kw">to</span> message
+
+<span class="co">&#39;//Pre-processing: padding with zeros</span>
+append <span class="st">&quot;0&quot;</span> bit until message length in bits ≡ 448 (mod 512)
+append original length in bits mod (2 pow 64) <span class="kw">to</span> message</code></pre></div>
+<p>This part actually gave me some trouble because I thought that I had to add one bit (containing <code>1</code>) to my message in the MSB (most significant bit) slot, and then start appending <code>0</code>s or the message length immediately after that. That turns out not to be the case, and reading the RFC and other implementations on Rosetta Code provided a good solution to the problem.</p>
+<p>Essentially, following the message, we need to add a <code>0x80</code> 16-bit word followed by the length (restricted to 8 bytes). The intervening space, if any, is filled with <code>0</code> bytes.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> padMessage (msg : <span class="dt">byte</span> []) =
+<span class="kw">let</span> msgLen = Array<span class="kw">.</span>length msg
+<span class="kw">let</span> msgLenInBits = (<span class="dt">uint64</span> msgLen) * <span class="dv">8</span>UL
+
+<span class="kw">let</span> lastSegmentSize =
+  <span class="kw">let</span> m = msgLen % <span class="dv">64</span>
+  <span class="kw">if</span> m = <span class="dv">0</span> <span class="kw">then</span> <span class="dv">64</span>
+  <span class="kw">else</span> m
+
+<span class="kw">let</span> padLen =
+  <span class="dv">64</span> - lastSegmentSize + (<span class="kw">if</span> lastSegmentSize &gt;= <span class="dv">56</span> <span class="kw">then</span> <span class="dv">64</span>
+                          <span class="kw">else</span> <span class="dv">0</span>)
+
+[|
+  <span class="kw">yield</span> <span class="dv">128</span>uy
+  <span class="kw">for</span> i <span class="kw">in</span> <span class="fl">2.</span>.padLen - <span class="dv">8</span> <span class="kw">do</span>
+    <span class="kw">yield</span> <span class="dv">0</span>uy
+  <span class="kw">for</span> i <span class="kw">in</span> <span class="fl">0.</span>.<span class="dv">7</span> <span class="kw">do</span>
+    <span class="kw">yield</span> ((msgLenInBits &gt;&gt;&gt; (<span class="dv">8</span> * i)) |&gt; <span class="dt">byte</span>)
+|]
+|&gt; Array<span class="kw">.</span>append msg
+
+<span class="kw">val</span> padMessage : msg:<span class="dt">byte</span> [] -&gt; <span class="dt">byte</span> []</code></pre></div>
+<p>This is the one part of the implementation that had the highest potential to be &quot;impure&quot;. Specifically, the part that constructs the padding. However, F# array comprehensions removed the need to mutate an <code>array</code> to construct the padding before it is appended to the <code>msg</code>.</p>
+<h2 id="step-7-the-core-of-the-main-loop-yes-i-know-this-is-out-of-order">Step 7: The core of the main loop (Yes, I know this is out of order)</h2>
+<p>The Wikipedia pseudo-code is written in an imperative manner where the main loops are encountered before we get to the meat of the hash construction algorithm. However, in order to explain my construction, I will start by looking at the implementation for a single iteration of the &quot;Main loop&quot;, and then build my way out from there.</p>
+<p>The Wikipedia pseudo-code for this step is as follows.</p>
+<div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic">        <span class="kw">if </span>0 ≤ i ≤ 15 <span class="kw">then</span>
+          F := (B <span class="kw">and</span> C) <span class="kw">or</span> ((<span class="kw">not</span> B) <span class="kw">and</span> D)
+          g := i
+      <span class="kw">else</span> <span class="kw">if </span>16 ≤ i ≤ 31
+          F := (D <span class="kw">and</span> B) <span class="kw">or</span> ((<span class="kw">not</span> D) <span class="kw">and</span> C)
+          g := (5×i + 1) mod 16
+      <span class="kw">else</span> <span class="kw">if </span>32 ≤ i ≤ 47
+          F := B <span class="kw">xor</span> C <span class="kw">xor</span> D
+          g := (3×i + 5) mod 16
+      <span class="kw">else</span> <span class="kw">if </span>48 ≤ i ≤ 63
+          F := C <span class="kw">xor</span> (B <span class="kw">or</span> (<span class="kw">not</span> D))
+          g := (7×i) mod 16
+<span class="co">&#39;//Be wary of the below definitions of a,b,c,d</span>
+      dTemp := D
+      D := C
+      C := B
+      B := B + leftrotate((A + F + K[i] + M[g]), s[i])
+      A := dTemp</code></pre></div>
+<p>In F#, I have three separate constructs that we need to look at. First, I followed the technique used by a few other implementations and collected the functions represented by <code>F</code> in a function <code>list</code>. This allows index-based access to the correct function.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> fxyz x y z : <span class="dt">uint32</span> = (x &amp;&amp;&amp; y) ||| (~~~x &amp;&amp;&amp; z)
+<span class="kw">let</span> gxyz x y z : <span class="dt">uint32</span> = (z &amp;&amp;&amp; x) ||| (~~~z &amp;&amp;&amp; y)
+<span class="kw">let</span> hxyz x y z : <span class="dt">uint32</span> = x ^^^ y ^^^ z
+<span class="kw">let</span> ixyz x y z : <span class="dt">uint32</span> = y ^^^ (x ||| ~~~z)
+
+<span class="kw">let</span> fghi =
+[fxyz; gxyz; hxyz; ixyz]
+|&gt; List<span class="kw">.</span>collect (List<span class="kw">.</span>replicate <span class="dv">16</span>)
+
+<span class="kw">val</span> fxyz : x:<span class="dt">uint32</span> -&gt; y:<span class="dt">uint32</span> -&gt; z:<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span>
+<span class="kw">val</span> gxyz : x:<span class="dt">uint32</span> -&gt; y:<span class="dt">uint32</span> -&gt; z:<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span>
+<span class="kw">val</span> hxyz : x:<span class="dt">uint32</span> -&gt; y:<span class="dt">uint32</span> -&gt; z:<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span>
+<span class="kw">val</span> ixyz : x:<span class="dt">uint32</span> -&gt; y:<span class="dt">uint32</span> -&gt; z:<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span>
+<span class="kw">val</span> fghi : (<span class="dt">uint32</span> -&gt; <span class="dt">uint32</span> -&gt; <span class="dt">uint32</span> -&gt; <span class="dt">uint32</span>) list</code></pre></div>
+<p>Second, I turned <code>g</code> into a set of functions and, as above, collected the pre-computed indices in a <code>list</code>.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> g1Idx = id
+<span class="kw">let</span> g2Idx i = (<span class="dv">5</span>*i + <span class="dv">1</span>) % <span class="dv">16</span>
+<span class="kw">let</span> g3Idx i = (<span class="dv">3</span>*i + <span class="dv">5</span>) % <span class="dv">16</span>
+<span class="kw">let</span> g4Idx i = (<span class="dv">7</span>*i) % <span class="dv">16</span>
+
+<span class="kw">let</span> gIdxs =
+[g1Idx; g2Idx; g3Idx; g4Idx]
+|&gt; List<span class="kw">.</span>collect (List<span class="kw">.</span>replicate <span class="dv">16</span>)
+|&gt; List<span class="kw">.</span>map2 (<span class="kw">fun</span> idx func -&gt; func idx) [<span class="fl">0.</span>.<span class="dv">63</span>]
+
+<span class="kw">val</span> g1Idx : (&#39;a -&gt; &#39;a)
+<span class="kw">val</span> g2Idx : i:<span class="dt">int</span> -&gt; <span class="dt">int</span>
+<span class="kw">val</span> g3Idx : i:<span class="dt">int</span> -&gt; <span class="dt">int</span>
+<span class="kw">val</span> g4Idx : i:<span class="dt">int</span> -&gt; <span class="dt">int</span>
+<span class="kw">val</span> gIdxs : <span class="dt">int</span> list</code></pre></div>
+<p>Finally, I implemented a single round of the MD5 computation.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> md5round (msg:<span class="dt">uint32</span>[]) {MD5<span class="kw">.</span>a=a; MD5<span class="kw">.</span>b=b; MD5<span class="kw">.</span>c=c; MD5<span class="kw">.</span>d=d} i =
+<span class="kw">let</span> rotateL32 r x = (x<span class="st">&lt;&lt;&lt;r) ||| (x&gt;&gt;</span>&gt;(<span class="dv">32</span>-r))
+<span class="kw">let</span> f = fghi.[i] b c d
+<span class="kw">let</span> a&#39; = b + (a + f + k.[i] + msg.[gIdxs.[i]] |&gt; rotateL32 s.[i])
+{a=d; b=a&#39;; c=b; d=c}
+
+<span class="kw">val</span> md5round : msg:<span class="dt">uint32</span> [] -&gt; MD5 -&gt; i:<span class="dt">int</span> -&gt; MD5</code></pre></div>
+<p>The <code>md5round</code> function takes in the computed-so-far MD5 hash and an index, calculates the updated hash, and passes it back to the caller.</p>
+<h2 id="step-6-hash-a-single-512-bit-chunk">Step 6: Hash a single 512-bit chunk</h2>
+<p>This step actually implements the &quot;Main loop&quot;, using the logic we coded for a single iteration of the loop.</p>
+<p>Here is Wikipedia's pseudo-code, although I have removed the text (replaced by a comment) that is part of Step 7.</p>
+<div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic"><span class="kw">for </span>each 512-bit chunk of message
+  break chunk into sixteen 32-bit words M[j], 0 ≤ j ≤ 15
+//Initialize hash value <span class="kw">for </span>this chunk:
+  var int A := a0
+  var int B := b0
+  var int C := c0
+  var int D := d0
+//Main loop:
+  <span class="kw">for </span>i from 0 <span class="kw">to</span> 63
+      <span class="co">&#39;// SEE STEP 7</span>
+  end <span class="kw">for</span>
+<span class="co">&#39;//Add this chunk&#39;s hash to result so far:</span>
+  a0 := a0 + A
+  b0 := b0 + B
+  c0 := c0 + C
+  d0 := d0 + D
+end <span class="kw">for</span></code></pre></div>
+<p>Note that although Wikipedia uses the labels <code>a0</code>, <code>b0</code>, <code>c0</code>, and <code>d0</code>, these are mutable values that permanently change with each 512-bit chunk that is processed. Thus, each new 512-bit chunk starts with these 4 values that have been changed by all the previous chunks that have been processed.</p>
+<p>The flow in this part of the code, without the details from Step 7, can be broken down into 3 parts:</p>
+<ol type="1">
+<li>Start with an initial value.</li>
+<li>Run an algorithm a limited number of times, wherein each execution of the algorithm uses the results from the previous run as the input.</li>
+<li>Take the final value and continue with the overall flow.</li>
+</ol>
+<p>This is a perfect scenario for a <code>fold</code> operation. Here is the F# code from my implementation.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> md5plus m (bs:<span class="dt">byte</span>[]) =
+<span class="kw">let</span> msg =
+  bs
+  |&gt; Array<span class="kw">.</span>chunkBySize <span class="dv">4</span>
+  |&gt; Array<span class="kw">.</span>take <span class="dv">16</span>
+  |&gt; Array<span class="kw">.</span>map (<span class="kw">fun</span> elt -&gt; System<span class="kw">.</span>BitConverter<span class="kw">.</span>ToUInt32(elt, <span class="dv">0</span>))
+<span class="kw">let</span> m&#39; = List<span class="kw">.</span>fold (md5round msg) m [<span class="fl">0.</span>.<span class="dv">63</span>]
+{a=m.a+m&#39;.a; b=m.b+m&#39;.b; c=m.c+m&#39;.c; d=m.d+m&#39;.d}
+
+<span class="kw">val</span> md5plus : m:MD5 -&gt; bs:<span class="dt">byte</span> [] -&gt; MD5</code></pre></div>
+<p><code>md5plus</code> expects the caller to pass in the initial value for the fold and the message that must be processed.</p>
+<p><code>md5round</code> operates on a message (that will not change for a single 512-bit chunk), an MD5 value, and an index. Those are the values that <code>md5plus</code> is using for the <code>fold</code>.</p>
+<p>At the end, <code>md5plus</code> passes back an updated MD5 hash which incorporates the changes derived from processing the given 512-bit chunk.</p>
+<h2 id="step-5-process-the-entire-message-and-derive-a-single-md5-hash">Step 5: Process the entire message and derive a single MD5 hash</h2>
+<p>The last step is to bring together all the individual pieces into a single algorithm that can:</p>
+<ul>
+<li>Take in a message of any length</li>
+<li>Pad the message correctly</li>
+<li>Calculate the MD5 hashes for each 512-bit chunk</li>
+<li>Produce a single MD5 hash.</li>
+</ul>
+<p>Wikipedia's pseudo-code for this step is quite simple.</p>
+<div class="sourceCode"><pre class="sourceCode vb"><code class="sourceCode monobasic">var <span class="dt">char</span> digest[16] := a0 append b0 append c0 append d0
+<span class="co">&#39;//(Output is in little-endian)</span></code></pre></div>
+<p>However, since I built the solution as a set of functions, this final function must do a little more work.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> md5sum (msg: <span class="dt">string</span>) =
+System<span class="kw">.</span>Text<span class="kw">.</span>Encoding<span class="kw">.</span>ASCII<span class="kw">.</span>GetBytes msg
+|&gt; padMessage
+|&gt; Array<span class="kw">.</span>chunkBySize <span class="dv">64</span>
+|&gt; Array<span class="kw">.</span>fold md5plus initialMD5
+|&gt; (<span class="kw">fun</span> {MD5<span class="kw">.</span>a=a; MD5<span class="kw">.</span>b=b; MD5<span class="kw">.</span>c=c; MD5<span class="kw">.</span>d=d} -&gt;
+  System<span class="kw">.</span>BitConverter<span class="kw">.</span>GetBytes a
+  |&gt; (<span class="kw">fun</span> x -&gt; System<span class="kw">.</span>BitConverter<span class="kw">.</span>GetBytes b |&gt; Array<span class="kw">.</span>append x)
+  |&gt; (<span class="kw">fun</span> x -&gt; System<span class="kw">.</span>BitConverter<span class="kw">.</span>GetBytes c |&gt; Array<span class="kw">.</span>append x)
+  |&gt; (<span class="kw">fun</span> x -&gt; System<span class="kw">.</span>BitConverter<span class="kw">.</span>GetBytes d |&gt; Array<span class="kw">.</span>append x))
+|&gt; Array<span class="kw">.</span>map (sprintf <span class="st">&quot;%02X&quot;</span>)
+|&gt; Array<span class="kw">.</span>reduce ( + )
+
+<span class="kw">val</span> md5sum : msg:<span class="dt">string</span> -&gt; <span class="dt">string</span></code></pre></div>
+<p>The main part of the algorithm is just the first 4 lines:</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> md5sum (msg: <span class="dt">string</span>) =
+System<span class="kw">.</span>Text<span class="kw">.</span>Encoding<span class="kw">.</span>ASCII<span class="kw">.</span>GetBytes msg
+|&gt; padMessage
+|&gt; Array<span class="kw">.</span>chunkBySize <span class="dv">64</span>
+|&gt; Array<span class="kw">.</span>fold md5plus initialMD5</code></pre></div>
+<p>The rest of the function is devoted to converting the MD5 hash into a user-friendly representation.</p>
+<h1 id="testing">Testing</h1>
+<p>Based on the testing I've done so far, this algorithm works correctly and produces exactly the same results as the OOTB MD5 algorithm.</p>
+<p>I first started by implementing the &quot;standard&quot; tests (originally specified in the RFC) and comparing the results with the OOTB algorithm.</p>
+<p>Then, I added an <a href="https://github.com/fscheck/FsCheck">FsCheck</a> test that compared my algorithm against the OOTB one for 10,000 tests - all passed without any problems. Now that I've finally learned how to properly use FsCheck at a basic level, I'm starting to find it difficult to completely trust my results unless all the FsCheck tests pass. I don't think that this is necessarily a bad thing, because it tends to make explicit assumptions that I made in my code (e.g. for my MD5 algorithm, I assume that the original message is an actual string and not just a <code>NULL</code>).</p>
+<h1 id="performance">Performance</h1>
+<p><em>Raw data for performance measurements on <a href="https://github.com/zakaluka/blog/blob/master/aoc/d5runtimes.xlsx">GitHub</a>.</em></p>
+<p>I measured performance by using the AOC Day 5, Part 1 problem, which computes thousands of MD5 hashes. Here are the results, derived using F# interactive's <code>#time</code> directive. I ran each test 3 times and averaged the results.</p>
+<table>
+<caption><em>Average run-time and garbage collection performance of the algorithms, in seconds</em></caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Algorithm</th>
+<th style="text-align: right;">Real</th>
+<th style="text-align: right;">CPU</th>
+<th style="text-align: right;">Gen0</th>
+<th style="text-align: right;">Gen1</th>
+<th style="text-align: right;">Gen2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">OOTB</td>
+<td style="text-align: right;">53.37</td>
+<td style="text-align: right;">53.37</td>
+<td style="text-align: right;">6780.33</td>
+<td style="text-align: right;">6.00</td>
+<td style="text-align: right;">0.67</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Functional</td>
+<td style="text-align: right;">172.79</td>
+<td style="text-align: right;">172.76</td>
+<td style="text-align: right;">34754.00</td>
+<td style="text-align: right;">17.67</td>
+<td style="text-align: right;">1.67</td>
+</tr>
+</tbody>
+</table>
+<p>Here is the same chart, but with percentages.</p>
+<table>
+<caption><em>Average run-time and garbage collection performance of the algorithms as a percentage, with the OOTB algorithm as the baseline.</em></caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Algorithm</th>
+<th style="text-align: right;">Real</th>
+<th style="text-align: right;">CPU</th>
+<th style="text-align: right;">Gen0</th>
+<th style="text-align: right;">Gen1</th>
+<th style="text-align: right;">Gen2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">OOTB</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Functional</td>
+<td style="text-align: right;">324%</td>
+<td style="text-align: right;">324%</td>
+<td style="text-align: right;">513%</td>
+<td style="text-align: right;">294%</td>
+<td style="text-align: right;">250%</td>
+</tr>
+</tbody>
+</table>
+<p>Obviously, my functional version of this algorithm is a LOT worse than the OOTB implementation.</p>
+<h1 id="lessons-learned">Lessons Learned</h1>
+<ol type="1">
+<li>Be extremely careful of assumptions when reading code. Each character and symbol should be analyzed to ensure that it is appropriate for the task at hand.</li>
+<li>Define the <code>tee</code> function at the beginning of each project because it WILL be useful at some point.</li>
+<li>It's been a goal of mine to implement a &quot;cryptographic&quot; algorithm for a few years now, but I never found the time before. I have to say that it was a lot of fun and I can't wait to do it again!
+<ul>
+<li>Not strictly a lesson, unless that lesson is &quot;have fun with hobby projects&quot;.</li>
+</ul></li>
+</ol>
+<p>See you next time!</p>
+</body>
+</html>

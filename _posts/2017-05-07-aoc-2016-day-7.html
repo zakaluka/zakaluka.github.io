@@ -11,4 +11,243 @@ blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-1742813275242511979
 blogger_orig_url: https://www.znprojects.com/2017/05/aoc-2016-day-7.html
 ---
 
-  <style type="text/css">code{white-space: pre;}</style>  <style type="text/css">div.sourceCode { overflow-x: auto; } table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {   margin: 0; padding: 0; vertical-align: baseline; border: none; } table.sourceCode { width: 100%; line-height: 100%; background-color: #303030; color: #cccccc; } td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; } td.sourceCode { padding-left: 5px; } pre, code { color: #cccccc; background-color: #303030; } code > span.kw { color: #f0dfaf; } /* Keyword */ code > span.dt { color: #dfdfbf; } /* DataType */ code > span.dv { color: #dcdccc; } /* DecVal */ code > span.bn { color: #dca3a3; } /* BaseN */ code > span.fl { color: #c0bed1; } /* Float */ code > span.ch { color: #dca3a3; } /* Char */ code > span.st { color: #cc9393; } /* String */ code > span.co { color: #7f9f7f; } /* Comment */ code > span.ot { color: #efef8f; } /* Other */ code > span.al { color: #ffcfaf; } /* Alert */ code > span.fu { color: #efef8f; } /* Function */ code > span.er { color: #c3bf9f; } /* Error */ code > span.wa { color: #7f9f7f; font-weight: bold; } /* Warning */ code > span.cn { color: #dca3a3; font-weight: bold; } /* Constant */ code > span.sc { color: #dca3a3; } /* SpecialChar */ code > span.vs { color: #cc9393; } /* VerbatimString */ code > span.ss { color: #cc9393; } /* SpecialString */ code > span.im { } /* Import */ code > span.va { } /* Variable */ code > span.cf { color: #f0dfaf; } /* ControlFlow */ code > span.op { color: #f0efd0; } /* Operator */ code > span.bu { } /* BuiltIn */ code > span.ex { } /* Extension */ code > span.pp { color: #ffcfaf; font-weight: bold; } /* Preprocessor */ code > span.at { } /* Attribute */ code > span.do { color: #7f9f7f; } /* Documentation */ code > span.an { color: #7f9f7f; font-weight: bold; } /* Annotation */ code > span.cv { color: #7f9f7f; font-weight: bold; } /* CommentVar */ code > span.in { color: #7f9f7f; font-weight: bold; } /* Information */   </style>  <!--[if lt IE 9]>    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>  <![endif]-->  <style>  table {     width : 100%;     border-collapse: collapse   }    td, th {     vertical-align: top;     border: 1px solid black;   }   </style><h1>Table of Contents</h1><nav id="TOC"><ul><li><a href="#aoc-2016---day-7">AOC 2016 - Day 7</a></li><li><a href="#background">Background</a></li><li><a href="#problem---part-1">Problem - Part 1</a></li><li><a href="#solution---part-1">Solution - Part 1</a><ul><li><a href="#extract-supernet-and-hypernet-sequences-from-an-ip-address">Extract supernet and hypernet sequences from an IP address</a></li><li><a href="#check-for-an-abba-pattern">Check for an ABBA pattern</a></li><li><a href="#check-an-entire-ip-address">Check an entire IP address</a></li><li><a href="#connect-the-pieces">Connect the pieces</a></li></ul></li><li><a href="#problem---part-2">Problem - Part 2</a></li><li><a href="#solution---part-2">Solution - Part 2</a><ul><li><a href="#extract-supernet-and-hypernet-sequences-from-an-ip-address-1">Extract supernet and hypernet sequences from an IP address</a></li><li><a href="#check-if-a-supernet-sequence-has-at-least-one-aba">Check if a supernet sequence has at least one ABA</a></li><li><a href="#check-if-a-hypernet-sequence-has-at-least-one-bab">Check if a hypernet sequence has at least one BAB</a></li><li><a href="#check-a-single-ip-address">Check a single IP address</a></li><li><a href="#connect-the-pieces-1">Connect the pieces</a></li></ul></li><li><a href="#lessons-learned">Lessons learned</a></li></ul></nav><h1 id="aoc-2016---day-7">AOC 2016 - Day 7</h1><p><em><a href="http://adventofcode.com/2016/day/7">Problem statement</a> on the Advent of Code website.</em></p><p><em>Code for this post can be found on <a href="https://github.com/zakaluka/fsaoc2016/tree/master/7">GitHub</a>.</em></p><h1 id="background">Background</h1><ul><li>On Day 1, we located Easter Bunny headquarters.</li><li>On Day 2, we broke the code to use the bathroom in Easter Bunny HQ.</li><li>On Day 3, we helped the EBHQ's design department by removing invalid triangles from the list.</li><li>On Day 4, we figured out which rooms in the information kiosk are valid.</li><li>On Day 5, we figured out how to get past security doors by calculating the code.</li><li>On Day 6, we figured out how to communicate with Santa through the Easter Bunnies' jamming technology.</li></ul><p>On Day 7, we will figure out which of the EBHQ's computers use encryption on the network.</p><h1 id="problem---part-1">Problem - Part 1</h1><p>For Part 1, we need to find the IP addresses (aka computers) that support the TLS (transport-layer snooping) protocol.</p><p>We determine this by parsing the IP address and checking for certain patterns.</p><h1 id="solution---part-1">Solution - Part 1</h1><p>When I read the problem description, Day 7 sounded very similar, at least in form, to the Day 4 problem.</p><p>The problem has multiple parts:</p><ol type="1"><li>Extract supernet and hypernet sequences from an IP address.</li><li>Check for an ABBA pattern.</li><li>Check an entire IP address.</li><li>Connect the pieces.</li></ol><h2 id="extract-supernet-and-hypernet-sequences-from-an-ip-address">Extract supernet and hypernet sequences from an IP address</h2><p>The first part of the problem is understanding the format of the IP address. IP addresses are strings of characters alternating between being outside and inside square brackets. Here are some examples of IP addresses:</p><ul><li>abba[mnop]qrst</li><li>abcd[bddb]xyyx[bddb]xyyx</li><li>ioxxoj[asdfgh]zxcvbn</li></ul><p>This solution, just like the Day 4 solution, stretched and expanded my regular expression skills. I would like to thank Will Boyd for the Regex Storm <a href="http://regexstorm.net/tester">Regex Tester</a>. This site made it much faster and easier to quickly test a regular expression (and its expected results) against a corpus of test data.</p><p>After a number of attempts, I ended up with two sets of regular expressions.</p><p>For supernet strings (whose proper name I did not know until Part 2), I used the following strategy:</p><ul><li>Remove all text between square brackets <code>[]</code>.</li><li>Break the resulting compound string into a list of strings.</li></ul><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">  <span class="kw">let</span> outerStrings =<br />    Regex<span class="kw">.</span>Replace (str, @<span class="st">&quot;\[\w+\]&quot;</span>, <span class="st">&quot; &quot;</span>)<br />    |&gt; <span class="kw">fun</span> s -&gt; s.Split ([|<span class="ch">&#39; &#39;</span>|])</code></pre></div><p>For hypernet strings, I used the following strategy:</p><ul><li>Extract all text that is between square brackets <code>[]</code>.</li><li>Remove the brackets.</li></ul><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">  <span class="kw">let</span> hypernetStrings =<br />    Regex<span class="kw">.</span>Matches (str, @<span class="st">&quot;\[\w+\]&quot;</span>)<br />    |&gt; Seq<span class="kw">.</span>cast<br />    |&gt; Seq<span class="kw">.</span>map (<span class="kw">fun</span> (m:Match) -&gt; Regex<span class="kw">.</span>Match(m.Value, @<span class="st">&quot;\w+&quot;</span>))<br />    |&gt; Seq<span class="kw">.</span>cast&lt;Match&gt;<br />    |&gt; Seq<span class="kw">.</span>map (<span class="kw">fun</span> x -&gt; x.Value)</code></pre></div><h2 id="check-for-an-abba-pattern">Check for an ABBA pattern</h2><p>An ABBA (Autonomous Bridge Bypass Annotation) pattern is a palindrome of exactly 4 characters within a string of length 4 or more.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> isABBA (str:<span class="dt">string</span>) =<br />  str<br />  |&gt; Seq<span class="kw">.</span>windowed <span class="dv">4</span><br />  |&gt; Seq<span class="kw">.</span>exists (<span class="kw">fun</span> s -&gt; s.[<span class="dv">0</span>] = s.[<span class="dv">3</span>] &amp;&amp; s.[<span class="dv">1</span>] = s.[<span class="dv">2</span>] &amp;&amp; s.[<span class="dv">0</span>] &lt;&gt; s.[<span class="dv">1</span>])</code></pre></div><h2 id="check-an-entire-ip-address">Check an entire IP address</h2><p>For Part 1, we have two primary requirements.</p><ul><li>The supernet sequences must contain at least one ABBA.</li><li>The hypernet sequences must not contain any ABBAs.</li></ul><p>The check for this is a one-liner.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">  (Seq<span class="kw">.</span>exists isABBA outerStrings) &amp;&amp; (Seq<span class="kw">.</span>exists isABBA hypernetStrings |&gt; <span class="kw">not</span>)</code></pre></div><h2 id="connect-the-pieces">Connect the pieces</h2><p>The final function that puts it all together is responsible for the following.</p><ul><li>Read the list of IP addresses.</li><li>Find the addresses that support TLS.</li></ul><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> day7part1 filename =<br />  File<span class="kw">.</span>ReadAllLines filename<br />  |&gt; Seq<span class="kw">.</span>filter supportsTLS<br />  |&gt; Seq<span class="kw">.</span>length</code></pre></div><p>When you run this function, you get <code>105</code>, which is the correct number of IP addresses that support TLS.</p><h1 id="problem---part-2">Problem - Part 2</h1><p>In Part 2, we have to determine which IP addresses support the SSL (super-secret listening) protocol.</p><p>The problem for Part 2 keeps the concept of supernet and hypernet sequences, but it changes the checks we need to perform on them. Instead of checking for ABBAs, we have to now check for ABAs and their dependent BABs.</p><h1 id="solution---part-2">Solution - Part 2</h1><p>Part 2 introduces two new types of patterns in IP addresses:</p><ol type="1"><li>ABA <ul><li>Area-Broadcast Accessor</li><li>Follows the pattern of 'First char', 'Second char', 'First char'</li><li>E.g. aba, xyx, pup</li></ul></li><li>BAB <ul><li>Byte Allocation Block</li><li>Contains the same characters as an ABA, but is reversed positions.</li><li>E.g. bab, yxy, upu</li></ul></li></ol><p>The requirements are as follows.</p><ol type="1"><li>There must be at least one ABA in the supernet sequences.</li><li>There must be at least one BAB in the hypernet sequences.</li></ol><p>My strategy for the Part 2 solution has slightly different steps.</p><ol type="1"><li>Extract supernet and hypernet sequences from an IP address.</li><li>Check if a supernet sequence has at least one ABA.</li><li>Check if a hypernet sequence has at least one BAB.</li><li>Check a single IP address.</li><li>Connect the pieces.</li></ol><h2 id="extract-supernet-and-hypernet-sequences-from-an-ip-address-1">Extract supernet and hypernet sequences from an IP address</h2><p>Extracting the supernet and hypernet sequences from an IP address follows exactly the same logic as the Part 1 problem. I extracted this code into two new functions and refactored the Part 1 code to use these new functions.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">//<span class="co">/ Extract supernet sequences from an IP address.</span><br /><span class="kw">let</span> supernetSeq ip =<br />  Regex<span class="kw">.</span>Replace (ip, @<span class="st">&quot;\[\w+\]&quot;</span>, <span class="st">&quot; &quot;</span>)<br />  |&gt; <span class="kw">fun</span> s -&gt; s.Split ([|<span class="ch">&#39; &#39;</span>|])<br /><br />//<span class="co">/ Extract hypernet sequences from an IP address.</span><br /><span class="kw">let</span> hypernetSeq ip =<br />  Regex<span class="kw">.</span>Matches (ip, @<span class="st">&quot;\[\w+\]&quot;</span>)<br />  |&gt; Seq<span class="kw">.</span>cast&lt;Match&gt;<br />  |&gt; Seq<span class="kw">.</span>map (<span class="kw">fun</span> m -&gt; Regex<span class="kw">.</span>Match(m.Value, @<span class="st">&quot;\w+&quot;</span>))<br />  |&gt; Seq<span class="kw">.</span>cast&lt;Match&gt;<br />  |&gt; Seq<span class="kw">.</span>map (<span class="kw">fun</span> x -&gt; x.Value)</code></pre></div><h2 id="check-if-a-supernet-sequence-has-at-least-one-aba">Check if a supernet sequence has at least one ABA</h2><p>The function <code>hasABA</code> takes a <code>string</code> of any length and tries to find at least one 3-character substring which matches the ABA pattern, which is:</p><ul><li>The first and third character must be the same.</li><li>The first and second character must be different.</li></ul><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> hasABA (str:<span class="dt">string</span>) =<br />  str<br />  |&gt; Seq<span class="kw">.</span>windowed <span class="dv">3</span><br />  |&gt; Seq<span class="kw">.</span>exists (<span class="kw">fun</span> x -&gt; x.[<span class="dv">0</span>] = x.[<span class="dv">2</span>] &amp;&amp; x.[<span class="dv">0</span>] &lt;&gt; x.[<span class="dv">1</span>])</code></pre></div><h2 id="check-if-a-hypernet-sequence-has-at-least-one-bab">Check if a hypernet sequence has at least one BAB</h2><p>To check if a hypernet sequence contains a BAB, I decided to use the <code>Set</code> collection. My overall strategy is as follows.</p><ol type="1"><li>Get all ABAs from the supernet sequences.</li><li>Flip the ABAs (i.e. turn them into BABs).</li><li>Get all the BABs from the hypernet sequences.</li><li>Check if the <code>Set</code>s intersect.</li></ol><p>First (and third), here is the code to get ABAs (or BABs) from IP addresses.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getABAs (str:<span class="dt">string</span>) =<br />  str<br />  |&gt; Seq<span class="kw">.</span>windowed <span class="dv">3</span><br />  |&gt; Seq<span class="kw">.</span>map (System<span class="kw">.</span>String)<br />  |&gt; Seq<span class="kw">.</span>filter hasABA</code></pre></div><p>Second, here is the code to flip an ABA.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> flipABA (str:<span class="dt">string</span>) = sprintf <span class="st">&quot;%c%c%c&quot;</span> str.[<span class="dv">1</span>] str.[<span class="dv">0</span>] str.[<span class="dv">1</span>]</code></pre></div><p>Finally, I connected these pieces in the <code>hasBAB</code> function.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> hasBAB abas hnStr =<br />  <span class="kw">let</span> babs =<br />    hnStr<br />    |&gt; getABAs<br />    |&gt; Set<span class="kw">.</span>ofSeq<br />  abas<br />  |&gt; Set<span class="kw">.</span>ofSeq<br />  |&gt; Set<span class="kw">.</span>map flipABA<br />  |&gt; Set<span class="kw">.</span>intersect babs<br />  |&gt; (Set<span class="kw">.</span>isEmpty &gt;&gt; <span class="kw">not</span>)</code></pre></div><h2 id="check-a-single-ip-address">Check a single IP address</h2><p>The function <code>supportsSSL</code> is responsible for ensuring that the supernet sequences contains at least one ABA and that the hypernet sequences contain at least one BAB.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> supportsSSL line =<br />  <span class="kw">let</span> abas =<br />    supernetSeq line<br />    |&gt; Seq<span class="kw">.</span>collect getABAs<br />  (supernetSeq line |&gt; Seq<span class="kw">.</span>exists hasABA)<br />  &amp;&amp; (hypernetSeq line |&gt; Seq<span class="kw">.</span>exists (hasBAB abas))</code></pre></div><h2 id="connect-the-pieces-1">Connect the pieces</h2><p>The last function, <code>day7part2</code>, is responsible for linking the input file to <code>supportsSSL</code> and for calculating the final answer (i.e. the number of IP addresses that support SSL).</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> day7part2 filename =<br />  File<span class="kw">.</span>ReadAllLines filename<br />  |&gt; Seq<span class="kw">.</span>filter supportsSSL<br />  |&gt; Seq<span class="kw">.</span>length</code></pre></div><h1 id="lessons-learned">Lessons learned</h1><p>Thanks to Day 7 being a relatively simple problem, my goal here was to expand my knowledge of testing.</p><ol type="1"><li>&quot;If at first you don't succeed, try, try again.&quot; I once again worked on making Expecto and FsCheck work together. <ul><li>As with Day 6, I did not end up using FsCheck - however, this was mainly because I could not get a good generator written for IP addresses.</li><li>In the end, I used the provided tests to ensure that my code is working correctly.</li><li>Since the time that I finished Day 7, I actually <a href="http://znprojects.blogspot.com/2017/04/aoc-2016-day-2-alternate-solutions.html">rewrote the solution to Day 2</a> using a variety of graph data structures (and corresponding algorithms) and used FsCheck extensively there and with the <a href="https://znprojects.blogspot.com/2017/04/md5-in-f-functionally.html">updated MD5 testing</a> I did. I feel a little more comfortable with FsCheck now, though I am still not completely clear on how to generate restricted data (e.g. positive <code>int</code>s) other than through rather rudimentary methods.</li></ul></li></ol><p>My goal with Day 8 (and beyond) is to start using new platforms (specifically, <a href="http://fable.io/">Fable</a>, <a href="https://github.com/fable-elmish/elmish">Elmish</a>, <a href="https://suave.io/">Suave</a>, etc.). I'm extremely excited to be doing this.</p><p>See you next time!</p>
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; background-color: #303030; color: #cccccc; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; }
+td.sourceCode { padding-left: 5px; }
+pre, code { color: #cccccc; background-color: #303030; }
+code > span.kw { color: #f0dfaf; } /* Keyword */
+code > span.dt { color: #dfdfbf; } /* DataType */
+code > span.dv { color: #dcdccc; } /* DecVal */
+code > span.bn { color: #dca3a3; } /* BaseN */
+code > span.fl { color: #c0bed1; } /* Float */
+code > span.ch { color: #dca3a3; } /* Char */
+code > span.st { color: #cc9393; } /* String */
+code > span.co { color: #7f9f7f; } /* Comment */
+code > span.ot { color: #efef8f; } /* Other */
+code > span.al { color: #ffcfaf; } /* Alert */
+code > span.fu { color: #efef8f; } /* Function */
+code > span.er { color: #c3bf9f; } /* Error */
+code > span.wa { color: #7f9f7f; font-weight: bold; } /* Warning */
+code > span.cn { color: #dca3a3; font-weight: bold; } /* Constant */
+code > span.sc { color: #dca3a3; } /* SpecialChar */
+code > span.vs { color: #cc9393; } /* VerbatimString */
+code > span.ss { color: #cc9393; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { } /* Variable */
+code > span.cf { color: #f0dfaf; } /* ControlFlow */
+code > span.op { color: #f0efd0; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #ffcfaf; font-weight: bold; } /* Preprocessor */
+code > span.at { } /* Attribute */
+code > span.do { color: #7f9f7f; } /* Documentation */
+code > span.an { color: #7f9f7f; font-weight: bold; } /* Annotation */
+code > span.cv { color: #7f9f7f; font-weight: bold; } /* CommentVar */
+code > span.in { color: #7f9f7f; font-weight: bold; } /* Information */
+</style>
+<!--[if lt IE 9]>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+<style>
+table {
+  width : 100%;
+  border-collapse: collapse
+}
+
+td, th {
+  vertical-align: top;
+  border: 1px solid black;
+}
+</style>
+<h1 id="aoc-2016---day-7">AOC 2016 - Day 7</h1>
+<p><em><a href="http://adventofcode.com/2016/day/7">Problem statement</a> on the Advent of Code website.</em></p>
+<p><em>Code for this post can be found on <a href="https://github.com/zakaluka/fsaoc2016/tree/master/7">GitHub</a>.</em></p>
+<h1 id="background">Background</h1>
+<ul>
+<li>On Day 1, we located Easter Bunny headquarters.</li>
+<li>On Day 2, we broke the code to use the bathroom in Easter Bunny HQ.</li>
+<li>On Day 3, we helped the EBHQ's design department by removing invalid triangles from the list.</li>
+<li>On Day 4, we figured out which rooms in the information kiosk are valid.</li>
+<li>On Day 5, we figured out how to get past security doors by calculating the code.</li>
+<li>On Day 6, we figured out how to communicate with Santa through the Easter Bunnies' jamming technology.</li>
+</ul>
+<p>On Day 7, we will figure out which of the EBHQ's computers use encryption on the network.</p>
+<h1 id="problem---part-1">Problem - Part 1</h1>
+<p>For Part 1, we need to find the IP addresses (aka computers) that support the TLS (transport-layer snooping) protocol.</p>
+<p>We determine this by parsing the IP address and checking for certain patterns.</p>
+<h1 id="solution---part-1">Solution - Part 1</h1>
+<p>When I read the problem description, Day 7 sounded very similar, at least in form, to the Day 4 problem.</p>
+<p>The problem has multiple parts:</p>
+<ol type="1">
+<li>Extract supernet and hypernet sequences from an IP address.</li>
+<li>Check for an ABBA pattern.</li>
+<li>Check an entire IP address.</li>
+<li>Connect the pieces.</li>
+</ol>
+<h2 id="extract-supernet-and-hypernet-sequences-from-an-ip-address">Extract supernet and hypernet sequences from an IP address</h2>
+<p>The first part of the problem is understanding the format of the IP address. IP addresses are strings of characters alternating between being outside and inside square brackets. Here are some examples of IP addresses:</p>
+<ul>
+<li>abba[mnop]qrst</li>
+<li>abcd[bddb]xyyx[bddb]xyyx</li>
+<li>ioxxoj[asdfgh]zxcvbn</li>
+</ul>
+<p>This solution, just like the Day 4 solution, stretched and expanded my regular expression skills. I would like to thank Will Boyd for the Regex Storm <a href="http://regexstorm.net/tester">Regex Tester</a>. This site made it much faster and easier to quickly test a regular expression (and its expected results) against a corpus of test data.</p>
+<p>After a number of attempts, I ended up with two sets of regular expressions.</p>
+<p>For supernet strings (whose proper name I did not know until Part 2), I used the following strategy:</p>
+<ul>
+<li>Remove all text between square brackets <code>[]</code>.</li>
+<li>Break the resulting compound string into a list of strings.</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">  <span class="kw">let</span> outerStrings =
+  Regex<span class="kw">.</span>Replace (str, @<span class="st">&quot;\[\w+\]&quot;</span>, <span class="st">&quot; &quot;</span>)
+  |&gt; <span class="kw">fun</span> s -&gt; s.Split ([|<span class="ch">&#39; &#39;</span>|])</code></pre></div>
+<p>For hypernet strings, I used the following strategy:</p>
+<ul>
+<li>Extract all text that is between square brackets <code>[]</code>.</li>
+<li>Remove the brackets.</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">  <span class="kw">let</span> hypernetStrings =
+  Regex<span class="kw">.</span>Matches (str, @<span class="st">&quot;\[\w+\]&quot;</span>)
+  |&gt; Seq<span class="kw">.</span>cast
+  |&gt; Seq<span class="kw">.</span>map (<span class="kw">fun</span> (m:Match) -&gt; Regex<span class="kw">.</span>Match(m.Value, @<span class="st">&quot;\w+&quot;</span>))
+  |&gt; Seq<span class="kw">.</span>cast&lt;Match&gt;
+  |&gt; Seq<span class="kw">.</span>map (<span class="kw">fun</span> x -&gt; x.Value)</code></pre></div>
+<h2 id="check-for-an-abba-pattern">Check for an ABBA pattern</h2>
+<p>An ABBA (Autonomous Bridge Bypass Annotation) pattern is a palindrome of exactly 4 characters within a string of length 4 or more.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> isABBA (str:<span class="dt">string</span>) =
+str
+|&gt; Seq<span class="kw">.</span>windowed <span class="dv">4</span>
+|&gt; Seq<span class="kw">.</span>exists (<span class="kw">fun</span> s -&gt; s.[<span class="dv">0</span>] = s.[<span class="dv">3</span>] &amp;&amp; s.[<span class="dv">1</span>] = s.[<span class="dv">2</span>] &amp;&amp; s.[<span class="dv">0</span>] &lt;&gt; s.[<span class="dv">1</span>])</code></pre></div>
+<h2 id="check-an-entire-ip-address">Check an entire IP address</h2>
+<p>For Part 1, we have two primary requirements.</p>
+<ul>
+<li>The supernet sequences must contain at least one ABBA.</li>
+<li>The hypernet sequences must not contain any ABBAs.</li>
+</ul>
+<p>The check for this is a one-liner.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">  (Seq<span class="kw">.</span>exists isABBA outerStrings) &amp;&amp; (Seq<span class="kw">.</span>exists isABBA hypernetStrings |&gt; <span class="kw">not</span>)</code></pre></div>
+<h2 id="connect-the-pieces">Connect the pieces</h2>
+<p>The final function that puts it all together is responsible for the following.</p>
+<ul>
+<li>Read the list of IP addresses.</li>
+<li>Find the addresses that support TLS.</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> day7part1 filename =
+File<span class="kw">.</span>ReadAllLines filename
+|&gt; Seq<span class="kw">.</span>filter supportsTLS
+|&gt; Seq<span class="kw">.</span>length</code></pre></div>
+<p>When you run this function, you get <code>105</code>, which is the correct number of IP addresses that support TLS.</p>
+<h1 id="problem---part-2">Problem - Part 2</h1>
+<p>In Part 2, we have to determine which IP addresses support the SSL (super-secret listening) protocol.</p>
+<p>The problem for Part 2 keeps the concept of supernet and hypernet sequences, but it changes the checks we need to perform on them. Instead of checking for ABBAs, we have to now check for ABAs and their dependent BABs.</p>
+<h1 id="solution---part-2">Solution - Part 2</h1>
+<p>Part 2 introduces two new types of patterns in IP addresses:</p>
+<ol type="1">
+<li>ABA
+<ul>
+<li>Area-Broadcast Accessor</li>
+<li>Follows the pattern of 'First char', 'Second char', 'First char'</li>
+<li>E.g. aba, xyx, pup</li>
+</ul></li>
+<li>BAB
+<ul>
+<li>Byte Allocation Block</li>
+<li>Contains the same characters as an ABA, but is reversed positions.</li>
+<li>E.g. bab, yxy, upu</li>
+</ul></li>
+</ol>
+<p>The requirements are as follows.</p>
+<ol type="1">
+<li>There must be at least one ABA in the supernet sequences.</li>
+<li>There must be at least one BAB in the hypernet sequences.</li>
+</ol>
+<p>My strategy for the Part 2 solution has slightly different steps.</p>
+<ol type="1">
+<li>Extract supernet and hypernet sequences from an IP address.</li>
+<li>Check if a supernet sequence has at least one ABA.</li>
+<li>Check if a hypernet sequence has at least one BAB.</li>
+<li>Check a single IP address.</li>
+<li>Connect the pieces.</li>
+</ol>
+<h2 id="extract-supernet-and-hypernet-sequences-from-an-ip-address-1">Extract supernet and hypernet sequences from an IP address</h2>
+<p>Extracting the supernet and hypernet sequences from an IP address follows exactly the same logic as the Part 1 problem. I extracted this code into two new functions and refactored the Part 1 code to use these new functions.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp">//<span class="co">/ Extract supernet sequences from an IP address.</span>
+<span class="kw">let</span> supernetSeq ip =
+Regex<span class="kw">.</span>Replace (ip, @<span class="st">&quot;\[\w+\]&quot;</span>, <span class="st">&quot; &quot;</span>)
+|&gt; <span class="kw">fun</span> s -&gt; s.Split ([|<span class="ch">&#39; &#39;</span>|])
+
+//<span class="co">/ Extract hypernet sequences from an IP address.</span>
+<span class="kw">let</span> hypernetSeq ip =
+Regex<span class="kw">.</span>Matches (ip, @<span class="st">&quot;\[\w+\]&quot;</span>)
+|&gt; Seq<span class="kw">.</span>cast&lt;Match&gt;
+|&gt; Seq<span class="kw">.</span>map (<span class="kw">fun</span> m -&gt; Regex<span class="kw">.</span>Match(m.Value, @<span class="st">&quot;\w+&quot;</span>))
+|&gt; Seq<span class="kw">.</span>cast&lt;Match&gt;
+|&gt; Seq<span class="kw">.</span>map (<span class="kw">fun</span> x -&gt; x.Value)</code></pre></div>
+<h2 id="check-if-a-supernet-sequence-has-at-least-one-aba">Check if a supernet sequence has at least one ABA</h2>
+<p>The function <code>hasABA</code> takes a <code>string</code> of any length and tries to find at least one 3-character substring which matches the ABA pattern, which is:</p>
+<ul>
+<li>The first and third character must be the same.</li>
+<li>The first and second character must be different.</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> hasABA (str:<span class="dt">string</span>) =
+str
+|&gt; Seq<span class="kw">.</span>windowed <span class="dv">3</span>
+|&gt; Seq<span class="kw">.</span>exists (<span class="kw">fun</span> x -&gt; x.[<span class="dv">0</span>] = x.[<span class="dv">2</span>] &amp;&amp; x.[<span class="dv">0</span>] &lt;&gt; x.[<span class="dv">1</span>])</code></pre></div>
+<h2 id="check-if-a-hypernet-sequence-has-at-least-one-bab">Check if a hypernet sequence has at least one BAB</h2>
+<p>To check if a hypernet sequence contains a BAB, I decided to use the <code>Set</code> collection. My overall strategy is as follows.</p>
+<ol type="1">
+<li>Get all ABAs from the supernet sequences.</li>
+<li>Flip the ABAs (i.e. turn them into BABs).</li>
+<li>Get all the BABs from the hypernet sequences.</li>
+<li>Check if the <code>Set</code>s intersect.</li>
+</ol>
+<p>First (and third), here is the code to get ABAs (or BABs) from IP addresses.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> getABAs (str:<span class="dt">string</span>) =
+str
+|&gt; Seq<span class="kw">.</span>windowed <span class="dv">3</span>
+|&gt; Seq<span class="kw">.</span>map (System<span class="kw">.</span>String)
+|&gt; Seq<span class="kw">.</span>filter hasABA</code></pre></div>
+<p>Second, here is the code to flip an ABA.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> flipABA (str:<span class="dt">string</span>) = sprintf <span class="st">&quot;%c%c%c&quot;</span> str.[<span class="dv">1</span>] str.[<span class="dv">0</span>] str.[<span class="dv">1</span>]</code></pre></div>
+<p>Finally, I connected these pieces in the <code>hasBAB</code> function.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> hasBAB abas hnStr =
+<span class="kw">let</span> babs =
+  hnStr
+  |&gt; getABAs
+  |&gt; Set<span class="kw">.</span>ofSeq
+abas
+|&gt; Set<span class="kw">.</span>ofSeq
+|&gt; Set<span class="kw">.</span>map flipABA
+|&gt; Set<span class="kw">.</span>intersect babs
+|&gt; (Set<span class="kw">.</span>isEmpty &gt;&gt; <span class="kw">not</span>)</code></pre></div>
+<h2 id="check-a-single-ip-address">Check a single IP address</h2>
+<p>The function <code>supportsSSL</code> is responsible for ensuring that the supernet sequences contains at least one ABA and that the hypernet sequences contain at least one BAB.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> supportsSSL line =
+<span class="kw">let</span> abas =
+  supernetSeq line
+  |&gt; Seq<span class="kw">.</span>collect getABAs
+(supernetSeq line |&gt; Seq<span class="kw">.</span>exists hasABA)
+&amp;&amp; (hypernetSeq line |&gt; Seq<span class="kw">.</span>exists (hasBAB abas))</code></pre></div>
+<h2 id="connect-the-pieces-1">Connect the pieces</h2>
+<p>The last function, <code>day7part2</code>, is responsible for linking the input file to <code>supportsSSL</code> and for calculating the final answer (i.e. the number of IP addresses that support SSL).</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> day7part2 filename =
+File<span class="kw">.</span>ReadAllLines filename
+|&gt; Seq<span class="kw">.</span>filter supportsSSL
+|&gt; Seq<span class="kw">.</span>length</code></pre></div>
+<h1 id="lessons-learned">Lessons learned</h1>
+<p>Thanks to Day 7 being a relatively simple problem, my goal here was to expand my knowledge of testing.</p>
+<ol type="1">
+<li>&quot;If at first you don't succeed, try, try again.&quot; I once again worked on making Expecto and FsCheck work together.
+<ul>
+<li>As with Day 6, I did not end up using FsCheck - however, this was mainly because I could not get a good generator written for IP addresses.</li>
+<li>In the end, I used the provided tests to ensure that my code is working correctly.</li>
+<li>Since the time that I finished Day 7, I actually <a href="http://znprojects.blogspot.com/2017/04/aoc-2016-day-2-alternate-solutions.html">rewrote the solution to Day 2</a> using a variety of graph data structures (and corresponding algorithms) and used FsCheck extensively there and with the <a href="https://znprojects.blogspot.com/2017/04/md5-in-f-functionally.html">updated MD5 testing</a> I did. I feel a little more comfortable with FsCheck now, though I am still not completely clear on how to generate restricted data (e.g. positive <code>int</code>s) other than through rather rudimentary methods.</li>
+</ul></li>
+</ol>
+<p>My goal with Day 8 (and beyond) is to start using new platforms (specifically, <a href="http://fable.io/">Fable</a>, <a href="https://github.com/fable-elmish/elmish">Elmish</a>, <a href="https://suave.io/">Suave</a>, etc.). I'm extremely excited to be doing this.</p>
+<p>See you next time!</p>

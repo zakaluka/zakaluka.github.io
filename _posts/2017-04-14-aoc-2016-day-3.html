@@ -11,4 +11,183 @@ blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-1652694604005058076
 blogger_orig_url: https://www.znprojects.com/2017/04/aoc-2016-day-3.html
 ---
 
-  <style type="text/css">code{white-space: pre;}</style>  <style type="text/css">div.sourceCode { overflow-x: auto; } table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {   margin: 0; padding: 0; vertical-align: baseline; border: none; } table.sourceCode { width: 100%; line-height: 100%; } td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; } td.sourceCode { padding-left: 5px; } code > span.kw { color: #007020; font-weight: bold; } /* Keyword */ code > span.dt { color: #902000; } /* DataType */ code > span.dv { color: #40a070; } /* DecVal */ code > span.bn { color: #40a070; } /* BaseN */ code > span.fl { color: #40a070; } /* Float */ code > span.ch { color: #4070a0; } /* Char */ code > span.st { color: #4070a0; } /* String */ code > span.co { color: #60a0b0; font-style: italic; } /* Comment */ code > span.ot { color: #007020; } /* Other */ code > span.al { color: #ff0000; font-weight: bold; } /* Alert */ code > span.fu { color: #06287e; } /* Function */ code > span.er { color: #ff0000; font-weight: bold; } /* Error */ code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */ code > span.cn { color: #880000; } /* Constant */ code > span.sc { color: #4070a0; } /* SpecialChar */ code > span.vs { color: #4070a0; } /* VerbatimString */ code > span.ss { color: #bb6688; } /* SpecialString */ code > span.im { } /* Import */ code > span.va { color: #19177c; } /* Variable */ code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */ code > span.op { color: #666666; } /* Operator */ code > span.bu { } /* BuiltIn */ code > span.ex { } /* Extension */ code > span.pp { color: #bc7a00; } /* Preprocessor */ code > span.at { color: #7d9029; } /* Attribute */ code > span.do { color: #ba2121; font-style: italic; } /* Documentation */ code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */ code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */   </style>  <!--[if lt IE 9]>    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>  <![endif]--><h1>Table of Contents</h1><nav id="TOC"><ul><li><a href="#aoc-2016---day-3">AOC 2016 - Day 3</a><ul><li><a href="#background">Background</a></li><li><a href="#problem---part-1">Problem - Part 1</a></li><li><a href="#solution---part-1">Solution - Part 1</a><ul><li><a href="#save-the-input">Save the input</a></li><li><a href="#validate-a-triangle">Validate a triangle</a></li><li><a href="#parse-and-filter-the-list-of-triangles">Parse and filter the list of triangles</a></li><li><a href="#get-the-count-of-valid-triangles">Get the count of valid triangles</a></li></ul></li><li><a href="#problem---part-2">Problem - Part 2</a></li><li><a href="#solution---part-2">Solution - Part 2</a><ul><li><a href="#parse-and-filter-the-list-of-triangles-1">Parse and filter the list of triangles</a></li><li><a href="#get-the-count-of-valid-triangles-1">Get the count of valid triangles</a></li></ul></li><li><a href="#lessons-learned">Lessons Learned</a></li></ul></li></ul></nav><h1 id="aoc-2016---day-3">AOC 2016 - Day 3</h1><p><em><a href="http://adventofcode.com/2016/day/3">Problem statement</a> on Advent of Code website.</em></p><p><em>Code for this post can be found on <a href="https://github.com/zakaluka/fsaoc2016/tree/master/3">GitHub</a>.</em></p><h2 id="background">Background</h2><ul><li>On Day 1, we located Easter Bunny headquarters.</li><li>On Day 2, we broke the code to use the bathroom in Easter Bunny HQ.</li></ul><h2 id="problem---part-1">Problem - Part 1</h2><p>On Day 3, we are walking through a design department and see a list values specifying various triangles. Our job is to be a good citizen and help the design department by identifying the triangles which are &quot;possible&quot;.</p><h2 id="solution---part-1">Solution - Part 1</h2><p>The algorithm which determines whether a triangle is &quot;possible&quot; is stated as follows:</p><blockquote><p>In a valid triangle, the sum of any two sides must be larger than the remaining side.</p></blockquote><p>I rephrased this for myself as follows:</p><blockquote><p>In a valid triangle, the sum of the two smaller sides must be larger than the largest side.</p></blockquote><p>The steps of the solution are as follows:</p><ol type="1"><li>Parse each line of the input file into 3 integers <ul><li>This is the first problem where I broke down and finally learned how to parse an input file.</li><li>The problem input was 1,902 lines.</li><li>I did <strong>not</strong> want to copy those lines into my source file.</li></ul></li><li>Filter the list of triangles by removing those which are not possible.</li><li>Calculate the length of the list.</li></ol><p>Some choices I made up-front:</p><ul><li>Based on experience with the previous two problems, I assumed that some part of the problem would change.</li><li>My guess was that it would either be the input or the way we determine valid triangles.</li><li>Thus, I parameterized the triangle algorithm.</li><li>I thought that if the input changes (specifically, the input file), I would go back and parameterize that as well.</li></ul><h3 id="save-the-input">Save the input</h3><p>For Step 1, I started by creating an <a href="https://github.com/zakaluka/fsaoc2016/blob/master/3/puzzle_input">input file</a>.</p><h3 id="validate-a-triangle">Validate a triangle</h3><p>I wrote a small function to determine whether a triangle is valid or not.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> possibleTriangle ptr =<br />  ptr<br />  |&gt; Seq<span class="kw">.</span>sort<br />  |&gt; <span class="kw">fun</span> x -&gt; (Seq<span class="kw">.</span>item <span class="dv">0</span> x) + (Seq<span class="kw">.</span>item <span class="dv">1</span> x) &gt; (Seq<span class="kw">.</span>item <span class="dv">2</span> x)</code></pre></div><h3 id="parse-and-filter-the-list-of-triangles">Parse and filter the list of triangles</h3><p>The largest part of the solution was to write a function to:</p><ol type="1"><li>Read the file</li><li>Parse the values</li><li>Filter the list to remove invalid triangles</li></ol><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> possibleTrianglesCount triangleEvaluator =<br />  File<span class="kw">.</span>ReadLines @<span class="st">&quot;./puzzle_input&quot;</span><br />  |&gt; Seq<span class="kw">.</span>map<br />    ((<span class="kw">fun</span> line -&gt; Regex<span class="kw">.</span>Matches (line, @<span class="st">&quot;[0-9]+&quot;</span>))<br />    &gt;&gt; Seq<span class="kw">.</span>cast<br />    &gt;&gt; Seq<span class="kw">.</span>map<br />      (<span class="kw">fun</span> (x : System<span class="kw">.</span>Text<span class="kw">.</span>RegularExpressions<span class="kw">.</span>Match) -&gt; x.Value |&gt; <span class="dt">int</span>)<br />    )<br />  |&gt; Seq<span class="kw">.</span>filter triangleEvaluator</code></pre></div><p>I like the fact that the 3 steps needed to perform this part of the job are so obviously mapped to the source code:</p><ol type="1"><li>Read the file ==&gt; <code>File.ReadLines</code></li><li>Parse the file and turn the values into <code>int</code>s ==&gt; <code>Seq.map</code></li><li>Filter the list ==&gt; <code>Seq.filter</code></li></ol><h3 id="get-the-count-of-valid-triangles">Get the count of valid triangles</h3><p>The last step was to connect <code>possibleTriangle</code> to <code>possibleTrianglesCount</code>.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> day3part1 =<br />  possibleTrianglesCount possibleTriangle<br />  |&gt; Seq<span class="kw">.</span>length</code></pre></div><p>I deliberately kept the summarization step separate from the filtering action on the off-chance that the problem for Part 2 would ask me to do something different with the list of valid triangles (<em>oh, how wrong I was!</em>).</p><p>This function, when executed on the input, gives a value of <code>982</code>, which is the correct answer.</p><h2 id="problem---part-2">Problem - Part 2</h2><p>Part 2 threw in a twist that I did not expect. It changed the way that the program has to interpret the input file:</p><ul><li>Even though the input file is organized in 3 columns of numbers, values in each row are unrelated to each other</li><li>Instead, the data must be read in column-order.</li></ul><p>For example, if this is the input file with just 9 numbers:</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="dv">101</span> <span class="dv">301</span> <span class="dv">501</span><br /><span class="dv">102</span> <span class="dv">302</span> <span class="dv">502</span><br /><span class="dv">103</span> <span class="dv">303</span> <span class="dv">503</span></code></pre></div><p>Then the three triangles are:</p><ul><li>101, 102, 103</li><li>301, 302, 303</li><li>501, 502, 503</li></ul><h2 id="solution---part-2">Solution - Part 2</h2><p>My goal for the solution to Part 2 was to try and re-use as much code as possible. The first, obvious candidate for re-use was the <code>possibleTriangle</code> function. Unfortunately, I could not re-use the parsing code, since that code was embedded in the <code>possibleTrianglesCount</code> function.</p><h3 id="parse-and-filter-the-list-of-triangles-1">Parse and filter the list of triangles</h3><p>To parse and filter the list of triangles, I chose the following steps:</p><ol type="1"><li>Parse file into <code>int</code>s</li><li>Transform input from 3 columns of <code>int</code>s into 1 longer column</li><li>Group values into <code>seq</code>s of 3</li><li>Filter the list</li></ol><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> possibleVerticalTrianglesCount triangleEvaluator =<br />  <span class="co">(* Turn 3 columns of ints into 1 column *)</span><br />  <span class="kw">let</span> colOfInts ints =<br />    ints<br />    |&gt; Seq<span class="kw">.</span>map (Seq<span class="kw">.</span>item <span class="dv">0</span>)<br />    |&gt; Seq<span class="kw">.</span>append (ints |&gt; Seq<span class="kw">.</span>map (Seq<span class="kw">.</span>item <span class="dv">1</span>))<br />    |&gt; Seq<span class="kw">.</span>append (ints |&gt; Seq<span class="kw">.</span>map (Seq<span class="kw">.</span>item <span class="dv">2</span>))<br />  <span class="co">(* Read the data, serialize it, re-group it, then filter using evaluation function *)</span><br />  File<span class="kw">.</span>ReadLines @<span class="st">&quot;./puzzle_input&quot;</span><br />  |&gt; Seq<span class="kw">.</span>map<br />    ((<span class="kw">fun</span> line -&gt; Regex<span class="kw">.</span>Matches (line, @<span class="st">&quot;[0-9]+&quot;</span>))<br />    &gt;&gt; Seq<span class="kw">.</span>cast<br />    &gt;&gt; Seq<span class="kw">.</span>map<br />      (<span class="kw">fun</span> (x : System<span class="kw">.</span>Text<span class="kw">.</span>RegularExpressions<span class="kw">.</span>Match) -&gt; x.Value |&gt; <span class="dt">int</span>)<br />    )<br />  |&gt; colOfInts<br />  |&gt; Seq<span class="kw">.</span>chunkBySize <span class="dv">3</span><br />  |&gt; Seq<span class="kw">.</span>filter triangleEvaluator</code></pre></div><p>Thanks to F#'s OOTB functions in the <code>Seq</code> module, the only real change compared to the previous function was adding the part to change columns of 3 integers into a single column of integers.</p><h3 id="get-the-count-of-valid-triangles-1">Get the count of valid triangles</h3><p>The last step was to invoke the new function.</p><div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> day3part2 =<br />  possibleVerticalTrianglesCount possibleTriangle<br />  |&gt; Seq<span class="kw">.</span>length</code></pre></div><p>This function produces a value of <code>1826</code>, which is the correct answer.</p><h2 id="lessons-learned">Lessons Learned</h2><p>From Day 3, I picked up a few more lessons learned.</p><ol type="1"><li>Parameterize everything, since there is almost no other way to really have re-use in these problems.</li><li>Write more tests!!! <ol type="1"><li>Writing the code to turn a list of 3 columns into 1 took quite a bit of trial and error in F# interactive, and having automated tests, either with or without intermediate outputs, would have sped up the process greatly.</li><li>This is something I noted before, on the <a href="http://znprojects.blogspot.com/2017/03/aoc-2016-day-2.html">Day 2</a> blog post.</li><li>Obviously, I didn't learn my lesson while solving the Day 3 problem.</li></ol></li></ol><p>See you next time!</p></body></html>
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+<!--[if lt IE 9]>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+<![endif]-->
+<h1 id="aoc-2016---day-3">AOC 2016 - Day 3</h1>
+<p><em><a href="http://adventofcode.com/2016/day/3">Problem statement</a> on Advent of Code website.</em></p>
+<p><em>Code for this post can be found on <a href="https://github.com/zakaluka/fsaoc2016/tree/master/3">GitHub</a>.</em></p>
+<h2 id="background">Background</h2>
+<ul>
+<li>On Day 1, we located Easter Bunny headquarters.</li>
+<li>On Day 2, we broke the code to use the bathroom in Easter Bunny HQ.</li>
+</ul>
+<h2 id="problem---part-1">Problem - Part 1</h2>
+<p>On Day 3, we are walking through a design department and see a list values specifying various triangles. Our job is to be a good citizen and help the design department by identifying the triangles which are &quot;possible&quot;.</p>
+<h2 id="solution---part-1">Solution - Part 1</h2>
+<p>The algorithm which determines whether a triangle is &quot;possible&quot; is stated as follows:</p>
+<blockquote>
+<p>In a valid triangle, the sum of any two sides must be larger than the remaining side.</p>
+</blockquote>
+<p>I rephrased this for myself as follows:</p>
+<blockquote>
+<p>In a valid triangle, the sum of the two smaller sides must be larger than the largest side.</p>
+</blockquote>
+<p>The steps of the solution are as follows:</p>
+<ol type="1">
+<li>Parse each line of the input file into 3 integers
+<ul>
+<li>This is the first problem where I broke down and finally learned how to parse an input file.</li>
+<li>The problem input was 1,902 lines.</li>
+<li>I did <strong>not</strong> want to copy those lines into my source file.</li>
+</ul></li>
+<li>Filter the list of triangles by removing those which are not possible.</li>
+<li>Calculate the length of the list.</li>
+</ol>
+<p>Some choices I made up-front:</p>
+<ul>
+<li>Based on experience with the previous two problems, I assumed that some part of the problem would change.</li>
+<li>My guess was that it would either be the input or the way we determine valid triangles.</li>
+<li>Thus, I parameterized the triangle algorithm.</li>
+<li>I thought that if the input changes (specifically, the input file), I would go back and parameterize that as well.</li>
+</ul>
+<h3 id="save-the-input">Save the input</h3>
+<p>For Step 1, I started by creating an <a href="https://github.com/zakaluka/fsaoc2016/blob/master/3/puzzle_input">input file</a>.</p>
+<h3 id="validate-a-triangle">Validate a triangle</h3>
+<p>I wrote a small function to determine whether a triangle is valid or not.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> possibleTriangle ptr =
+ptr
+|&gt; Seq<span class="kw">.</span>sort
+|&gt; <span class="kw">fun</span> x -&gt; (Seq<span class="kw">.</span>item <span class="dv">0</span> x) + (Seq<span class="kw">.</span>item <span class="dv">1</span> x) &gt; (Seq<span class="kw">.</span>item <span class="dv">2</span> x)</code></pre></div>
+<h3 id="parse-and-filter-the-list-of-triangles">Parse and filter the list of triangles</h3>
+<p>The largest part of the solution was to write a function to:</p>
+<ol type="1">
+<li>Read the file</li>
+<li>Parse the values</li>
+<li>Filter the list to remove invalid triangles</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> possibleTrianglesCount triangleEvaluator =
+File<span class="kw">.</span>ReadLines @<span class="st">&quot;./puzzle_input&quot;</span>
+|&gt; Seq<span class="kw">.</span>map
+  ((<span class="kw">fun</span> line -&gt; Regex<span class="kw">.</span>Matches (line, @<span class="st">&quot;[0-9]+&quot;</span>))
+  &gt;&gt; Seq<span class="kw">.</span>cast
+  &gt;&gt; Seq<span class="kw">.</span>map
+    (<span class="kw">fun</span> (x : System<span class="kw">.</span>Text<span class="kw">.</span>RegularExpressions<span class="kw">.</span>Match) -&gt; x.Value |&gt; <span class="dt">int</span>)
+  )
+|&gt; Seq<span class="kw">.</span>filter triangleEvaluator</code></pre></div>
+<p>I like the fact that the 3 steps needed to perform this part of the job are so obviously mapped to the source code:</p>
+<ol type="1">
+<li>Read the file ==&gt; <code>File.ReadLines</code></li>
+<li>Parse the file and turn the values into <code>int</code>s ==&gt; <code>Seq.map</code></li>
+<li>Filter the list ==&gt; <code>Seq.filter</code></li>
+</ol>
+<h3 id="get-the-count-of-valid-triangles">Get the count of valid triangles</h3>
+<p>The last step was to connect <code>possibleTriangle</code> to <code>possibleTrianglesCount</code>.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> day3part1 =
+possibleTrianglesCount possibleTriangle
+|&gt; Seq<span class="kw">.</span>length</code></pre></div>
+<p>I deliberately kept the summarization step separate from the filtering action on the off-chance that the problem for Part 2 would ask me to do something different with the list of valid triangles (<em>oh, how wrong I was!</em>).</p>
+<p>This function, when executed on the input, gives a value of <code>982</code>, which is the correct answer.</p>
+<h2 id="problem---part-2">Problem - Part 2</h2>
+<p>Part 2 threw in a twist that I did not expect. It changed the way that the program has to interpret the input file:</p>
+<ul>
+<li>Even though the input file is organized in 3 columns of numbers, values in each row are unrelated to each other</li>
+<li>Instead, the data must be read in column-order.</li>
+</ul>
+<p>For example, if this is the input file with just 9 numbers:</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="dv">101</span> <span class="dv">301</span> <span class="dv">501</span>
+<span class="dv">102</span> <span class="dv">302</span> <span class="dv">502</span>
+<span class="dv">103</span> <span class="dv">303</span> <span class="dv">503</span></code></pre></div>
+<p>Then the three triangles are:</p>
+<ul>
+<li>101, 102, 103</li>
+<li>301, 302, 303</li>
+<li>501, 502, 503</li>
+</ul>
+<h2 id="solution---part-2">Solution - Part 2</h2>
+<p>My goal for the solution to Part 2 was to try and re-use as much code as possible. The first, obvious candidate for re-use was the <code>possibleTriangle</code> function. Unfortunately, I could not re-use the parsing code, since that code was embedded in the <code>possibleTrianglesCount</code> function.</p>
+<h3 id="parse-and-filter-the-list-of-triangles-1">Parse and filter the list of triangles</h3>
+<p>To parse and filter the list of triangles, I chose the following steps:</p>
+<ol type="1">
+<li>Parse file into <code>int</code>s</li>
+<li>Transform input from 3 columns of <code>int</code>s into 1 longer column</li>
+<li>Group values into <code>seq</code>s of 3</li>
+<li>Filter the list</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> possibleVerticalTrianglesCount triangleEvaluator =
+<span class="co">(* Turn 3 columns of ints into 1 column *)</span>
+<span class="kw">let</span> colOfInts ints =
+  ints
+  |&gt; Seq<span class="kw">.</span>map (Seq<span class="kw">.</span>item <span class="dv">0</span>)
+  |&gt; Seq<span class="kw">.</span>append (ints |&gt; Seq<span class="kw">.</span>map (Seq<span class="kw">.</span>item <span class="dv">1</span>))
+  |&gt; Seq<span class="kw">.</span>append (ints |&gt; Seq<span class="kw">.</span>map (Seq<span class="kw">.</span>item <span class="dv">2</span>))
+<span class="co">(* Read the data, serialize it, re-group it, then filter using evaluation function *)</span>
+File<span class="kw">.</span>ReadLines @<span class="st">&quot;./puzzle_input&quot;</span>
+|&gt; Seq<span class="kw">.</span>map
+  ((<span class="kw">fun</span> line -&gt; Regex<span class="kw">.</span>Matches (line, @<span class="st">&quot;[0-9]+&quot;</span>))
+  &gt;&gt; Seq<span class="kw">.</span>cast
+  &gt;&gt; Seq<span class="kw">.</span>map
+    (<span class="kw">fun</span> (x : System<span class="kw">.</span>Text<span class="kw">.</span>RegularExpressions<span class="kw">.</span>Match) -&gt; x.Value |&gt; <span class="dt">int</span>)
+  )
+|&gt; colOfInts
+|&gt; Seq<span class="kw">.</span>chunkBySize <span class="dv">3</span>
+|&gt; Seq<span class="kw">.</span>filter triangleEvaluator</code></pre></div>
+<p>Thanks to F#'s OOTB functions in the <code>Seq</code> module, the only real change compared to the previous function was adding the part to change columns of 3 integers into a single column of integers.</p>
+<h3 id="get-the-count-of-valid-triangles-1">Get the count of valid triangles</h3>
+<p>The last step was to invoke the new function.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">let</span> day3part2 =
+possibleVerticalTrianglesCount possibleTriangle
+|&gt; Seq<span class="kw">.</span>length</code></pre></div>
+<p>This function produces a value of <code>1826</code>, which is the correct answer.</p>
+<h2 id="lessons-learned">Lessons Learned</h2>
+<p>From Day 3, I picked up a few more lessons learned.</p>
+<ol type="1">
+<li>Parameterize everything, since there is almost no other way to really have re-use in these problems.</li>
+<li>Write more tests!!!
+<ol type="1">
+<li>Writing the code to turn a list of 3 columns into 1 took quite a bit of trial and error in F# interactive, and having automated tests, either with or without intermediate outputs, would have sped up the process greatly.</li>
+<li>This is something I noted before, on the <a href="http://znprojects.blogspot.com/2017/03/aoc-2016-day-2.html">Day 2</a> blog post.</li>
+<li>Obviously, I didn't learn my lesson while solving the Day 3 problem.</li>
+</ol></li>
+</ol>
+<p>See you next time!</p>
+</body>
+</html>
