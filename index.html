@@ -7,12 +7,16 @@ title: ZNProjects Blog
     <ul class="posts">
         {% for post in site.posts %}
             <li>
-                {% if forloop.index0 < 3 %}
+                {% if forloop.index0 == 0 %}
                     <h2>
+                {% elseif forloop.index0 < 3 %}
+                    <h3>
                 {% endif %}
                 <span>{{ post.date | date_to_string }}</span> >> <a href="{{ post.url }}" title="{{ post.title }}">{{ post.title }}</a>
-                {% if forloop.index0 < 3 %}
+                {% if forloop.index0 == 0 %}
                     </h2>
+                {% elseif forloop.index0 < 3 %}
+                    </h3>
                 {% endif %}
             </li>
         {% endfor %}
