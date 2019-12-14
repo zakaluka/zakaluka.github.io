@@ -6,3 +6,4 @@ google_analytics: UA-12761202-2
 repository: zakaluka/zakaluka.github.io
 github:
   repository_url: https://znprojects.com
+include: [".well-known"]
