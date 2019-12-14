@@ -1,9 +1,0 @@
----
-layout: none
-permalink: .well-known/brave-rewards-verification.txt
----
-
-This is a Brave Rewards publisher verification file.
-
-Domain: znprojects.com
-Token: ab3e5460284bc5c975a48238005d46754fb8483951f5df966344377356bd0df6
