@@ -3,12 +3,14 @@ layout: default
 title: Daily Coding Problem 7
 author: Sachin
 tags:
-- DailyCodingProblem
+- Daily Coding Problem
 - Rust
 - Microbenchmark
 - Property-based testing
-# date: '2019-10-13T12:00:00.000-05:00'
-modified_time: '2019-10-13T12:00:00.000-05:00'
+- Criterion.rs
+- proptest
+# date: '2019-12-15T12:00:00.000-05:00'
+modified_time: '2019-12-15T12:00:00.000-05:00'
 ---
 
 <!DOCTYPE html>
@@ -20,7 +22,7 @@ modified_time: '2019-10-13T12:00:00.000-05:00'
   <meta name="generator" content="rustdoc">
   <meta name="description" content="API documentation for the Rust `problem_7` mod in crate `p7`.">
   <meta name="keywords" content="rust, rustlang, rust-lang, problem_7">
-  <title>p7::problem_7 - Rust</title>
+  <title>Daily Coding Problem 7 - Rust</title>
   <link rel="stylesheet" type="text/css" href="../../../assets/css/normalize.css">
   <!-- <link rel="stylesheet" type="text/css" href="../../../assets/css/rustdoc.css" id="mainThemeStyle"> -->
   <link rel="stylesheet" type="text/css" href="../../../assets/css/dark.css">
@@ -30,7 +32,7 @@ modified_time: '2019-10-13T12:00:00.000-05:00'
 <body>
   <section id="main" class="content" style="margin-top:0px; width: 1120px;">
     <div class='docblock'>
-      <h1 id="problem-7" class="section-header"><a href="#problem-7">Problem 7</a></h1>
+      <h1 id="problem-7" class="section-header"><a href="#problem-7">Problem 7 - Decoding a Message</a></h1>
       <p>The problem statement is as follows:</p>
       <blockquote>
         <p>Given the mapping a = 1, b = 2, ... z = 26, and an encoded message, count
@@ -317,7 +319,8 @@ fn test_is_valid_pb_all() {
       <p>Below youy can find some charts / plots to show how the different variants
         compare.</p>
       <h2 id="line-chart" class="section-header"><a href="#line-chart">Line Chart</a></h2>
-      <div><img src="../../../assets/images/2019-10-13-daily-coding-problem-7/lines.svg" alt="Comparison of time vs input" width="800"></div>
+      <div><img src="../../../assets/images/2019-10-13-daily-coding-problem-7/lines.svg"
+          alt="Comparison of time vs input" width="800"></div>
       <p>This chart shows the mean measured time for each function as the input (or
         the size of the input) increases.</p>
       <p>As you can see, the Memoize variant is so fast that is barely registers on
@@ -334,7 +337,8 @@ fn test_is_valid_pb_all() {
         applications (desktop, mobile) was better, but with the evolution of web
         frameworks and WebAssembly, that may be a moot point.</p>
       <p>See you in the next one!</p>
-      <h1 id="ps-additional-charts-and-graphs" class="section-header"><a href="#ps-additional-charts-and-graphs">Appendix:
+      <h1 id="ps-additional-charts-and-graphs" class="section-header"><a
+          href="#ps-additional-charts-and-graphs">Appendix:
           Additional Charts and Graphs</a></h1>
       <p>The following charts and graphs are courtesy of Criterion. I have organized
         them by problem / benchmark (rather than by algorithm), so it is easier to
@@ -346,52 +350,77 @@ fn test_is_valid_pb_all() {
 
       </style>
       <div class="zncolumngrid">
-        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7_1a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7_1b.svg"></div>
-        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7m_1a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7m_1b.svg"></div>
-        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7tr_1a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7tr_1b.svg"></div>
-        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7tri_1a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7tri_1b.svg"></div>
+        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7_1a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7_1b.svg"></div>
+        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7m_1a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7m_1b.svg"></div>
+        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7tr_1a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7tr_1b.svg"></div>
+        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7tri_1a.svg">
+          <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/1/p7tri_1b.svg"></div>
       </div>
       <h2 id="2repeat20" class="section-header"><a href="#2repeat20"><code>&quot;2&quot;.repeat(20)</code></a></h2>
       <div class="zncolumngrid">
-        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7_2a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7_2b.svg"></div>
-        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7m_2a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7m_2b.svg"></div>
-        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7tr_2a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7tr_2b.svg"></div>
-        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7tri_2a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7tri_2b.svg"></div>
+        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7_2a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7_2b.svg"></div>
+        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7m_2a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7m_2b.svg"></div>
+        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7tr_2a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7tr_2b.svg"></div>
+        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7tri_2a.svg">
+          <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/2/p7tri_2b.svg"></div>
       </div>
       <h2 id="12repeat10" class="section-header"><a href="#12repeat10"><code>&quot;12&quot;.repeat(10)</code></a></h2>
       <div class="zncolumngrid">
-        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7_12a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7_12b.svg"></div>
-        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7m_12a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7m_12b.svg"></div>
-        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7tr_12a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7tr_12b.svg"></div>
-        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7tri_12a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7tri_12b.svg"></div>
+        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7_12a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7_12b.svg"></div>
+        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7m_12a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7m_12b.svg"></div>
+        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7tr_12a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7tr_12b.svg"></div>
+        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7tri_12a.svg">
+          <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/12/p7tri_12b.svg"></div>
       </div>
       <h2 id="123repeat10" class="section-header"><a href="#123repeat10"><code>&quot;123&quot;.repeat(10)</code></a>
       </h2>
       <div class="zncolumngrid">
-        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7_123a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7_123b.svg"></div>
-        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7m_123a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7m_123b.svg"></div>
-        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7tr_123a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7tr_123b.svg"></div>
-        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7tri_123a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7tri_123b.svg"></div>
+        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7_123a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7_123b.svg"></div>
+        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7m_123a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7m_123b.svg"></div>
+        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7tr_123a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7tr_123b.svg"></div>
+        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7tri_123a.svg">
+          <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/123/p7tri_123b.svg"></div>
       </div>
       <h2 id="124782193651078432562974to_string" class="section-header"><a
           href="#124782193651078432562974to_string"><code>&quot;124782193651078432562974&quot;</code></a>
       </h2>
       <div class="zncolumngrid">
-        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7_124a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7_124b.svg"></div>
-        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7m_124a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7m_124b.svg"></div>
-        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7tr_124a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7tr_124b.svg"></div>
-        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7tri_124a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7tri_124b.svg"></div>
+        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7_124a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7_124b.svg"></div>
+        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7m_124a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7m_124b.svg"></div>
+        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7tr_124a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7tr_124b.svg"></div>
+        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7tri_124a.svg">
+          <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/124/p7tri_124b.svg"></div>
       </div>
       <h2 id="12131415161718191010918171615145141313121to_string" class="section-header"><a
           href="#12131415161718191010918171615145141313121to_string"><code>&quot;12131415161718191010918171615145141313121&quot;</code></a>
       </h2>
       <div class="zncolumngrid">
-        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7_121a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7_121b.svg"></div>
-        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7m_121a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7m_121b.svg"></div>
-        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7tr_121a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7tr_121b.svg"></div>
-        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7tri_121a.svg"> <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7tri_121b.svg"></div>
+        <div>Primary <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7_121a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7_121b.svg"></div>
+        <div>Memoize <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7m_121a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7m_121b.svg"></div>
+        <div>Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7tr_121a.svg"> <img
+            src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7tr_121b.svg"></div>
+        <div>Fake Tail Recursive <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7tri_121a.svg">
+          <img src="../../../assets/images/2019-10-13-daily-coding-problem-7/121/p7tri_121b.svg"></div>
       </div>
     </div>
+  </section>
 </body>
 
 </html>

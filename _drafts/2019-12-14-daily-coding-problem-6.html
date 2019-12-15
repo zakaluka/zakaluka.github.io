@@ -1,0 +1,265 @@
+---
+layout: default
+title: Daily Coding Problem 6
+author: Sachin
+tags:
+- Daily Coding Problem
+- Rust
+- Criterion.rs
+# date: '2019-12-14T12:00:00.000-05:00'
+modified_time: '2019-12-14T12:00:00.000-05:00'
+---
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="rustdoc">
+  <meta name="description" content="API documentation for the Rust `dcp6` crate.">
+  <meta name="keywords" content="rust, rustlang, rust-lang, dcp6">
+  <title>Daily Coding Problem 6 - Rust</title>
+  <link rel="stylesheet" type="text/css" href="../../../assets/css/normalize.css">
+  <!-- <link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"> -->
+  <link rel="stylesheet" type="text/css" href="../../../assets/css/dark.css">
+  <link rel="stylesheet" type="text/css" href="../../../assets/css/light.css" id="themeStyle">
+</head>
+
+<body>
+  <section id="main" class="content" style="margin-top:0px; width: 1120px;">
+    <div class='docblock'>
+      <h1 id="problem-6---xor-linked-list" class="section-header"><a href="#problem-6---xor-linked-list">Problem 6 - XOR
+          Linked List</a></h1>
+      <p>The problem statement is as follows:</p>
+      <blockquote>
+        <p>An XOR linked list is a more memory efficient doubly linked list. Instead
+          of each node holding <code>next</code> and <code>prev</code> fields, it holds a field named
+          <code>both</code>, which is an XOR of the next node and the previous node. Implement
+          an XOR linked list; it has an <code>add(element)</code> which adds the element to the
+          end, and a <code>get(index)</code> which returns the node at index.</p>
+      </blockquote>
+      <blockquote>
+        <p>If using a language that has no pointers (such as Python) you can assume
+          you have access to <code>get_pointer</code> and <code>dereference_pointer</code> functions that
+          converts between nodes and memory addresses.</p>
+      </blockquote>
+      <p><em>NOTE: All the code in this post, including this write-up itself, can be
+          found or generated from the <a href="https://github.com/zakaluka/DailyCodingProblems">GitHub
+            repository</a>.</em></p>
+      <h1 id="preface-to-solution" class="section-header"><a href="#preface-to-solution">Preface to Solution</a></h1>
+      <p>This problem represents a large gap in my recent blog posts because, when I
+        encountered this problem, I saw it as an opportunity to learn <a href="https://www.rust-lang.org/">Rust</a>.</p>
+      <p>For those who are not familiar, here is a short description from
+        <a href="https://research.mozilla.org/rust/">Mozilla Research</a>:</p>
+      <blockquote>
+        <p>Rust is an open-source systems programming language that focuses on speed,
+          memory safety and parallelism. Developers are using Rust to create a wide
+          range of new software applications, such as game engines, operating
+          systems, file systems, browser components and simulation engines for
+          virtual reality.</p>
+      </blockquote>
+      <p>Rust is a &quot;low-level&quot; language whose syntax is quite close to C/C++.
+        However, it also provides a number of higher-level concepts from other
+        object-oriented and functional programming languages.</p>
+      <p>In particular, Rust has a very strong concept of memory safety through
+        concepts of <a href="https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html">ownership</a> and <a
+          href="https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html">borrowing</a>. While there are
+        lots of other
+        articles about this feature and its implementation, here is how it finally
+        made sense to me: Rust's memory safety is somewhat similar to a pessimistic
+        database lock. Because mutability is very explicit in Rust, there can be as
+        many <code>readers</code> as desired for a single location in memory. However, when
+        a <code>writer</code> wants to mutate that memory, it receives and keeps exclusive
+        access to that memory until the work is complete.</p>
+      <p>As you can imagine, doubly linked lists are particularly annoying in Rust
+        because a common question that comes up is 'Who owns the current node, the
+        previous or the next node'. There is an excellent <a
+          href="https://rust-unofficial.github.io/too-many-lists/">article</a> about linked
+        lists in Rust for those wanting a correct and much better introduction to
+        linked lists in Rust.</p>
+      <p>It took me the better part of the last few months to learn enough about Rust
+        to get this exercise working. I gave up pretty much once a month, wrote this
+        solution partially in <a href="https://golang.org/">Go</a> and in <a href="https://fsharp.org/">F#</a>, and did
+        a lot of
+        experimentation to get to this point. In the end, I was not able to make my
+        code completely 'safe' in Rust, but I am not sure that is possible with an
+        XOR linked list. In any case, all feedback is welcome and greatly
+        appreciated.</p>
+      <h1 id="solution" class="section-header"><a href="#solution">Solution</a></h1>
+      <h2 id="data-model" class="section-header"><a href="#data-model">Data model</a></h2>
+      <p>The key to this problem, in my mind, is to design the correct data structure
+        that can work with an XOR linked list while also ensuring that objects are
+        not prematurely destroyed (a problem in Rust since the language calls the
+        <a href="https://doc.rust-lang.org/nomicon/destructors.html">destructor</a> as soon as the last reference to an
+        object goes out of
+        scope).</p>
+      <p>Going with the classic model, a linked list is made of a series of nodes.
+        My choice was to create two data structures that, together, represent an XOR
+        linked list:</p>
+      <ol>
+        <li>An <code>XORLinkedListNode</code> is a <a
+            href="https://doc.rust-lang.org/book/ch05-01-defining-structs.html">struct</a> (similar to a F# record, a
+          Java
+          class without methods, or a data transfer object) that holds the following
+          information:
+          <ol>
+            <li><code>element</code> holds an integer, representing the value of the node.</li>
+            <li><code>both</code> holds the XOR'ed memory address.</li>
+          </ol>
+        </li>
+        <li>An <code>XORLinkedList</code> is a struct that holds the following information:
+          <ol>
+            <li><code>nodes</code> keeps a reference to all <code>XORLinkedListNode</code> objects so
+              that Rust does not <code>drop</code> while they are still part of the list.</li>
+          </ol>
+        </li>
+      </ol>
+      <p>In addition to the above, there are two additional considerations to keep in
+        mind:</p>
+      <ul>
+        <li>The Rust compiler is free to move objects around in memory for efficiency
+          purposes, whether on the stack or the heap. Because of the strong memory
+          safety that Rust provides, this is considered a relatively safe action.
+          However, if the compiler chooses to move items around, that would
+          invalidate the <code>both</code> pointer. To prevent this, each node has a 3rd
+          element in its struct called <code>_pin</code>.
+          <ul>
+            <li><code>_pin</code> forces Rust to pin an object to a memory address. More
+              information can be found <a href="https://doc.rust-lang.org/nightly/std/pin/index.html">here</a>.</li>
+          </ul>
+        </li>
+        <li>By default, Rust creates objects on the stack. To create objects on the
+          heap so that they outlive the execution of a function, Rust provides
+          <a href="https://doc.rust-lang.org/std/boxed/index.html">boxed</a> values.
+          <ul>
+            <li>The types of <code>nodes</code> in the <code>XORLinkedList</code> is
+              <code>Vec&lt;Pin&lt;Box&lt;XORLinkedListNode&gt;&gt;&gt;</code>, i.e. a vector of boxed, pinned
+              <code>XORLinkedListNode</code> values.</li>
+          </ul>
+        </li>
+      </ul>
+      <h2 id="xorlinkedlistnode" class="section-header"><a href="#xorlinkedlistnode">XORLinkedListNode</a></h2>
+      <p><code>XORLinkedListNode</code> provides two methods. THe first is the equivalent of a
+        simple constructor that creates new nodes. The second is a <code>set_both</code>
+        function that changes the value of <code>both</code> for a boxed, pinned node.</p>
+      <pre><code class="language-text">unsafe fn set_both(new_both: usize, node: &amp;mut Pin&lt;Box&lt;XORLinkedListNode&gt;&gt;)
+{
+  let x = node.as_mut();
+  Pin::get_unchecked_mut(x).both = new_both;
+}
+</code></pre>
+      <h2 id="xorlinkedlist" class="section-header"><a href="#xorlinkedlist">XORLinkedList</a></h2>
+      <p><code>XORLinkedList</code> provides the two methods requested in the original problem
+        statement, <code>add</code> and <code>get</code>.</p>
+      <p><code>add</code> is responsible for two key actions:</p>
+      <ol>
+        <li>Creating the new node.</li>
+        <li>Fixing the <code>both</code> attribute of the last node in a non-empty linked list.</li>
+      </ol>
+      <pre><code class="language-text">// Adds an item to the end of the linked list.
+fn add(&amp;mut self, v: i32) -&gt; &amp;XORLinkedList {
+  // Linked list is empty, so add the value with an `EMPTY` both
+  // pointer.
+  if self.nodes.is_empty() {
+    // First, create the new node.
+    let n = XORLinkedListNode::new(v, None);
+
+    // Add node to the internal vector.
+    self.nodes.push(n);
+
+    self
+  } else {
+    // Convenience variable for current length.
+    let l = self.nodes.len();
+
+    // Create new tail node with `both` set to the address of the old tail.
+    // Then, adds the new tail to the internal vector.
+    self.nodes.push(XORLinkedListNode::new(
+      v,
+      Option::from(self.nodes[l - 1].deref()),
+    ));
+
+    // Fixes the old tail's `both` to point to the address of the new tail.
+    unsafe {
+      XORLinkedListNode::set_both(
+        self.nodes[l - 1].both ^ address(self.nodes[l].deref()),
+        &amp;mut self.nodes[l - 1],
+      );
+    }
+
+    self
+  }
+}
+</code></pre>
+      <p><code>get</code> uses a recursive helper function to walk the list and retrieve the
+        desired index. In its current implementation, <code>get</code> will <code>panic</code> if the
+        requested index is outside the length of the linked list.</p>
+      <pre><code class="language-text">// Returns the `XORLinkedListNode` at the given index. This will panic if
+// the index is outside the length of the linked list.
+fn get(&amp;self, index: usize) -&gt; &amp;XORLinkedListNode {
+  // (Tail-)Recursive function that returns the node at the given index. `n`
+  // represents the current node under investigation. `idx` represents the
+  // index being counted down (0-based). `prev_address` represents the
+  // memory address of the previous node, so that it can be XORed with
+  // `n.both` to get the next node's address.
+  fn get_helper(
+    n: &amp;XORLinkedListNode,
+    idx: usize,
+    prev_address: usize,
+  ) -&gt; &amp;XORLinkedListNode {
+    if idx == 0 {
+      n
+    } else {
+      // Get the address of the next node.
+      let next_address = n.both ^ prev_address;
+      let next_n = next_address as *const XORLinkedListNode;
+      get_helper(unsafe { &amp;(*next_n) }, idx - 1, address(n))
+    }
+  }
+
+  // Call `get_helper`. The previous node of the first entry in the list is
+  // always `EMPTY`.
+  get_helper(&amp;self.nodes[0], index, EMPTY)
+}
+</code></pre>
+      <h2 id="utility-methods" class="section-header"><a href="#utility-methods">Utility methods</a></h2>
+      <p>The code uses one utility constant and one utility function to make coding
+        easier.</p>
+      <p>The first is a constant called <code>EMPTY</code> which represents the so-called empty
+        address, i.e. <code>0x0</code>.</p>
+      <p>The second is a function that returns the address of an object.</p>
+      <pre><code class="language-text">// Gets the memory address of an object.
+fn address&lt;T&gt;(elt: &amp;T) -&gt; usize {
+  usize::from_str_radix(format!(&quot;{:p}&quot;, elt).trim_start_matches(&quot;0x&quot;), 16)
+    .unwrap()
+}
+</code></pre>
+      <h1 id="testing" class="section-header"><a href="#testing">Testing</a></h1>
+      <p>Testing in Rust was extremely easy, thanks to built-in support using the
+        <code>cargo test</code> command.</p>
+      <p>For this exercise, I did not perform any property-based testing. By the end,
+        I just wanted to get my code working. However, this exercise really
+        highlighted the value of unit testing. It was through testing that I
+        realized that Rust is free to move objects around in memory, even if they
+        were allocated on the heap. I don't know if other languages also have this
+        behavior, but it was very surprising to me. That is what led me down the
+        rabbit hole of both pinned and boxed values.</p>
+      <h1 id="conclusion" class="section-header"><a href="#conclusion">Conclusion</a></h1>
+      <p>Even though this was my first coding challenge in Rust, I don't think I
+        could have picked a better problem to help me learn about some key concepts
+        in Rust:</p>
+      <ol>
+        <li>Heap allocations</li>
+        <li>Memory safety</li>
+        <li>Unsafe functions</li>
+        <li>Immutability vs. mutability</li>
+      </ol>
+      <p>I am planning to write the next few solutions in Rust to build up my
+        knowledge of the language.</p>
+      <p>See you in the next one!</p>
+    </div>
+  </section>
+</body>
+
+</html>
