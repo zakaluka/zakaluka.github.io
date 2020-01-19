@@ -1,0 +1,366 @@
+---
+layout: default
+title: Daily Coding Problem 8 - Count Unival Trees
+author: zakaluka
+tags:
+- Daily Coding Problem
+- Rust
+- Microbenchmark
+- Property-based testing
+- Criterion.rs
+- proptest
+- valgrind
+- massif
+date: '2020-01-18T12:00:00.000-05:00'
+modified_time: '2020-01-18T12:00:00.000-05:00'
+---
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="rustdoc">
+  <meta name="description" content="API documentation for the Rust `problem_8` mod in crate `dcp8`.">
+  <meta name="keywords" content="rust, rustlang, rust-lang, problem_8">
+  <title>Daily Coding Problem 8 - Rust</title>
+  <link rel="stylesheet" type="text/css" href="../../../assets/css/normalize.css">
+  <!-- <link rel="stylesheet" type="text/css" href="../../../assets/css/rustdoc.css" id="mainThemeStyle"> -->
+  <link rel="stylesheet" type="text/css" href="../../../assets/css/dark.css">
+  <link rel="stylesheet" type="text/css" href="../../../assets/css/light.css" id="themeStyle">
+</head>
+
+<body>
+  <section id="main" class="content" style="margin-top:0px; width: 1120px;">
+    <div class='docblock'>
+      <h1 id="problem-8---count-unival-trees" class="section-header"><a href="#problem-8---count-unival-trees">Problem 8
+          - Count Unival Trees</a></h1>
+      <p>The problem statement is as follows:</p>
+      <blockquote>
+        <p>A unival tree (which stands for &quot;universal value&quot;) is a tree where all
+          nodes under it have the same value. &gt;
+          Given the root to a binary tree, count the number of unival subtrees.</p>
+        <p>For example, the following tree has 5 unival subtrees:</p>
+        <pre><code class="language-text">  0
+ / \
+1   0
+   / \
+  1   0
+ / \
+1   1
+</code></pre>
+      </blockquote>
+      <p><em>NOTE: All the code in this post, including this write-up itself, can be
+          found or generated from the
+          <a href="https://github.com/zakaluka/DailyCodingProblems">GitHub repository</a>.</em></p>
+      <h1 id="solution" class="section-header"><a href="#solution">Solution</a></h1>
+      <p>The solution has two major parts:</p>
+      <ul>
+        <li>The data model, which uses a &quot;classical&quot; representation of a tree.</li>
+        <li>The algorithms, which uses a depth-first search.</li>
+      </ul>
+      <h2 id="assumptions" class="section-header"><a href="#assumptions">Assumptions</a></h2>
+      <p>The solution makes the following assumptions:</p>
+      <ul>
+        <li>Each tree is a full binary tree.</li>
+        <li>The tree is not deep enough that it will cause a stack overflow (as part
+          of a <a href="https://en.wikipedia.org/wiki/Depth-first_search">depth-first search</a> algorithm).</li>
+        <li>Instead of making the data structure generic, <code>Branch</code>es and <code>Leaf</code>s of a
+          <code>Tree</code> hold a boolean as their value. Making this value an integer or
+          even a generic type adds complexity without adding any value to the final
+          solution.</li>
+      </ul>
+      <p>According to Wikipedia, a <a href="https://en.wikipedia.org/wiki/Binary_tree">full binary tree</a> is defined
+        as follows:</p>
+      <blockquote>
+        <p>A full binary tree (sometimes referred to as a proper or plane binary
+          tree) is a tree in which every node has either 0 or 2 children. Another
+          way of defining a full binary tree is a recursive definition. A full
+          binary tree is either:</p>
+        <ul>
+          <li>A single vertex.</li>
+          <li>A tree whose root node has two subtrees, both of which are full binary
+            trees.</li>
+        </ul>
+      </blockquote>
+      <h2 id="data-model" class="section-header"><a href="#data-model">Data model</a></h2>
+      <p>Here is the data structure used to hold the <code>Tree</code>:</p>
+      <pre><code class="language-text">pub enum Tree {
+  Leaf(bool),
+  Branch(bool, Box&lt;Tree&gt;, Box&lt;Tree&gt;),
+}
+</code></pre>
+      <p>The sub-trees are <code>Box</code>ed so that the compiler knows the size of a <code>Branch</code>
+        when one is created.</p>
+      <h2 id="algorithm" class="section-header"><a href="#algorithm">Algorithm</a></h2>
+      <p>The solution performs a depth-first search to find unival trees, going down
+        the &quot;left&quot; side of the tree first. Each function call takes a tree,
+        specifically a <code>Box&lt;Tree&gt;</code>, as input. The output is a tuple consisting of
+        an <code>Option</code> and an integer, <code>(Option&lt;bool&gt;, i32)</code>. If the <code>Option</code> is
+        holding a value, it indicates that the sub-tree which was analyzed is a
+        unival tree and the value represents the boolean value of that unival tree.
+        The integer represents the number of unival trees found so far as part of
+        the search.</p>
+      <pre><code class="language-text">pub(in crate) fn depth_first_search_helper(
+  tree: Box&lt;Tree&gt;,
+) -&gt; (Option&lt;bool&gt;, i32) {
+  match *tree {
+    Tree::Leaf(x) =&gt; (Option::from(x), 1),
+    Tree::Branch(x, lt, rt) =&gt; {
+      // Count the number of univals along the left child.
+      let (l_unival, l_count) = depth_first_search_helper(lt);
+
+      // Count the number of univals along the right child.
+      let (r_unival, r_count) = depth_first_search_helper(rt);
+
+      match (l_unival, r_unival) {
+        // If the left or right sub-trees don't have the same value, then
+        // just send over any counts from both sub-trees.
+        (None, _) =&gt; (None, l_count + r_count),
+        (_, None) =&gt; (None, l_count + r_count),
+
+        // If the left and sub-trees both have the same values within their
+        // respective sub-trees, check if the two sub-trees have the same
+        // value and if it matches the current node.
+        (Some(lv), Some(rv)) =&gt;
+          if lv == rv &amp;&amp; lv == x {
+            (Some(x), l_count + r_count + 1)
+          } else {
+            (None, l_count + r_count)
+          },
+      }
+    }
+  }
+}
+</code></pre>
+      <h1 id="testing" class="section-header"><a href="#testing">Testing</a></h1>
+      <p>This code was tested using the example provided by the original problem and
+        by using property-based testing. Unfortunately, since there is only one
+        implementation of the algorithm, it is difficult to independently verify the
+        results. The property-based testing checked for two main properties:</p>
+      <ul>
+        <li>Number of unival tress &gt; 0</li>
+        <li>Number of unival tress &gt;= number of leaves in the tree.</li>
+      </ul>
+      <h1 id="benchmarking" class="section-header"><a href="#benchmarking">Benchmarking</a></h1>
+      <p>The solution was benchmarked in two ways:</p>
+      <ol>
+        <li>Execution time was benchmarked using <a
+            href="https://bheisler.github.io/criterion.rs/book/">Criterion.rs</a>.</li>
+        <li>Memory usage was benchmarked using <a href="https://valgrind.org/docs/manual/ms-manual.html">Valgrind
+            Massif</a></li>
+      </ol>
+      <h2 id="strategy" class="section-header"><a href="#strategy">Strategy</a></h2>
+      <p>To benchmark the application, I used input values from 1 to 20 to indicate
+        the number of levels in the input's tree. Values, i.e. the <code>bool</code> stored
+        within each node, were picked randomly using the <a
+          href="https://rust-random.github.io/book/"><code>rand</code></a> package.</p>
+      <p>For benchmarking purposes, the system produces &quot;perfect&quot; binary trees, i.e.
+        binary trees where all interior nodes are <code>Branch</code>es and all <code>Leaf</code>s have
+        the same depth. Even though the answer (in terms of unival trees) will vary
+        for each execution, the number of nodes that are being iterated will remain
+        the same. This may produce some variance in results, but could potentially
+        reveal anomalies over multiple benchmark runs. For completely deterministic
+        results, some strategies include using the same values for all nodes or
+        alternating values by depth.</p>
+      <h2 id="results" class="section-header"><a href="#results">Results</a></h2>
+      <p>The following line chart depicts CPU usage against the number of elements in
+        the tree.</p>
+      <div><img src="../../../assets/images/2020-01-18-daily-coding-problem-8/cpu-benchmark.svg" alt="Comparison of time vs elements" width="800"></div>
+      <p>The following chart depicts memory usage against the number of elements in
+        the tree.</p>
+      <div><img src="../../../assets/images/2020-01-18-daily-coding-problem-8/memory-benchmark.svg" alt="Comparison of memory vs elements" width="800"></div>
+      <h1 id="conclusion" class="section-header"><a href="#conclusion">Conclusion</a></h1>
+      <p>This project marked a few &quot;firsts&quot; for me:</p>
+      <ol>
+        <li>
+          <p>Using <a href="https://github.com/sagiegurari/cargo-make">cargo-make</a> to manage builds, documentation,
+            and benchmarks. I
+            expect to use it a lot more going forward.</p>
+        </li>
+        <li>
+          <p>Using <a href="https://valgrind.org/docs/manual/ms-manual.html">Valgrind Massify</a> to benchmark memory
+            usage. I also learned
+            that <a href="https://github.com/KDE/massif-visualizer">massif-visualizer</a> and <a
+              href="http://valgrind.org/docs/manual/ms-manual.html">ms_print</a> interpret &quot;peaks&quot; differently
+            in the snapshots, leading to different understanding of program behavior
+            when it comes to memory usage. Personally, I prefer massif-visualizer
+            because it correctly identified the snapshots with the greatest memory usage
+            (as a sum of heap and stack space).</p>
+        </li>
+        <li>
+          <p>Using Rust to quickly generate recursive data structures without
+            prototyping them in another language first (such as F#). I hope this is a
+            sign that I am getting at least a little more comfortable with the language.</p>
+        </li>
+      </ol>
+      <p>I originally wrote out the solution on a piece of paper while on a long
+        flight (using pseudocode), and I'm glad to see that the algorithm I wrote
+        there worked with minimal changes being required. Converting that
+        pseudocode into Rust was a lot of fun, and there was a decent amount of
+        wrestling with the compiler to get this to work. However, it was a good
+        challenge and I'm looking forward to more.</p>
+      <p>See you in the next one!</p>
+      <h1 id="appendix-a---chart-data" class="section-header"><a href="#appendix-a---chart-data">Appendix A - Chart
+          data</a></h1>
+      <p>The following table shows the data used to create the above memory benchmark
+        chart in <a href="http://gnumeric.org/">Gnumeric</a>. All numbers are in bytes, except the element count.</p>
+      <table>
+        <thead>
+          <tr>
+            <th align="right"><strong>Elements</strong></th>
+            <th align="right"><strong>Total (B)</strong></th>
+            <th align="right"><strong>Useful Heap</strong></th>
+            <th align="right"><strong>Extra Heap</strong></th>
+            <th align="right"><strong>Stack</strong></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td align="right">2</td>
+            <td align="right">167,779,000</td>
+            <td align="right">100,665,510</td>
+            <td align="right">67,109,042</td>
+            <td align="right">4,448</td>
+          </tr>
+          <tr>
+            <td align="right">4</td>
+            <td align="right">167,779,728</td>
+            <td align="right">100,665,984</td>
+            <td align="right">67,109,232</td>
+            <td align="right">4,512</td>
+          </tr>
+          <tr>
+            <td align="right">8</td>
+            <td align="right">167,780,584</td>
+            <td align="right">100,666,602</td>
+            <td align="right">67,109,574</td>
+            <td align="right">4,408</td>
+          </tr>
+          <tr>
+            <td align="right">16</td>
+            <td align="right">167,782,000</td>
+            <td align="right">100,667,529</td>
+            <td align="right">67,109,895</td>
+            <td align="right">4,576</td>
+          </tr>
+          <tr>
+            <td align="right">32</td>
+            <td align="right">167,783,744</td>
+            <td align="right">100,668,591</td>
+            <td align="right">67,110,633</td>
+            <td align="right">4,520</td>
+          </tr>
+          <tr>
+            <td align="right">64</td>
+            <td align="right">167,787,264</td>
+            <td align="right">100,670,821</td>
+            <td align="right">67,111,739</td>
+            <td align="right">4,704</td>
+          </tr>
+          <tr>
+            <td align="right">128</td>
+            <td align="right">167,792,448</td>
+            <td align="right">100,673,928</td>
+            <td align="right">67,113,816</td>
+            <td align="right">4,704</td>
+          </tr>
+          <tr>
+            <td align="right">256</td>
+            <td align="right">167,803,688</td>
+            <td align="right">100,680,746</td>
+            <td align="right">67,118,118</td>
+            <td align="right">4,824</td>
+          </tr>
+          <tr>
+            <td align="right">512</td>
+            <td align="right">167,822,000</td>
+            <td align="right">100,691,820</td>
+            <td align="right">67,125,508</td>
+            <td align="right">4,672</td>
+          </tr>
+          <tr>
+            <td align="right">1,024</td>
+            <td align="right">167,862,000</td>
+            <td align="right">100,716,227</td>
+            <td align="right">67,140,941</td>
+            <td align="right">4,832</td>
+          </tr>
+          <tr>
+            <td align="right">2,048</td>
+            <td align="right">167,939,936</td>
+            <td align="right">100,762,825</td>
+            <td align="right">67,172,023</td>
+            <td align="right">5,088</td>
+          </tr>
+          <tr>
+            <td align="right">4,096</td>
+            <td align="right">168,107,136</td>
+            <td align="right">100,863,087</td>
+            <td align="right">67,238,897</td>
+            <td align="right">5,152</td>
+          </tr>
+          <tr>
+            <td align="right">8,192</td>
+            <td align="right">168,370,928</td>
+            <td align="right">101,021,429</td>
+            <td align="right">67,344,475</td>
+            <td align="right">5,024</td>
+          </tr>
+          <tr>
+            <td align="right">16,384</td>
+            <td align="right">169,037,368</td>
+            <td align="right">101,421,288</td>
+            <td align="right">67,611,056</td>
+            <td align="right">5,024</td>
+          </tr>
+          <tr>
+            <td align="right">32,768</td>
+            <td align="right">169,893,848</td>
+            <td align="right">101,935,562</td>
+            <td align="right">67,953,382</td>
+            <td align="right">4,904</td>
+          </tr>
+          <tr>
+            <td align="right">65,536</td>
+            <td align="right">172,712,472</td>
+            <td align="right">103,626,428</td>
+            <td align="right">69,080,636</td>
+            <td align="right">5,408</td>
+          </tr>
+          <tr>
+            <td align="right">131,072</td>
+            <td align="right">178,122,752</td>
+            <td align="right">106,872,547</td>
+            <td align="right">71,244,733</td>
+            <td align="right">5,472</td>
+          </tr>
+          <tr>
+            <td align="right">262,144</td>
+            <td align="right">186,988,728</td>
+            <td align="right">112,193,353</td>
+            <td align="right">74,790,223</td>
+            <td align="right">5,152</td>
+          </tr>
+          <tr>
+            <td align="right">524,288</td>
+            <td align="right">208,617,856</td>
+            <td align="right">125,170,799</td>
+            <td align="right">83,441,857</td>
+            <td align="right">5,200</td>
+          </tr>
+          <tr>
+            <td align="right">1,048,576</td>
+            <td align="right">249,538,088</td>
+            <td align="right">149,722,922</td>
+            <td align="right">99,809,918</td>
+            <td align="right">5,248</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</body>
+
+</html>

@@ -1,8 +1,12 @@
 theme: jekyll-theme-leap-day
-name: ZNProjects
-title: ZNProjects
+name: znProjects Blog
+title: znProjects Blog
 description: Software is beautiful again!
 google_analytics: UA-12761202-2
 repository: zakaluka/zakaluka.github.io
 github:
-  repository_url: https://znprojects.com
+  repository_url: https://github.com/zakaluka/DailyCodingProblems
+  home_url: https://znprojects.com
+  owner_url: https://github.com/zakaluka
+  is_project_page: true
+show_downloads: false
