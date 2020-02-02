@@ -7,10 +7,20 @@ tags:
 ---
 
 <!-- 
+  Comrak instructions:
+  1. Take header comment from .rs file and save to markdown file
+  2. Remove comment tags from start of line: 
+    1. From: //![ ]?(.*)
+    2. To: $1
+  3. Save HTML file and modify per instructions below.
+
+  comrak command:
+  comrak --gfm --header-ids _ -- ./temp.markdown > ./temp.html
+
   Instructions:
   1. Surround text with HTML and BODY tags.
   2. Take the header from here.
-  3. Change <pre lang="rust"><code> tags to <pre><code class="lang-rust">. 
+  3. Change <pre lang="rust"><code> tags to <pre><code class="lang-rust">.
 -->
 
 <!DOCTYPE html>
@@ -20,7 +30,6 @@ tags:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="comrak">
-  <meta name="description" content="Advent of Code 2019 Problem 1">
   <title>Advent of Code 2019 Day 1 - Rust</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.19.0/themes/prism.min.css">
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.19.0/components/prism-core.min.js"></script>
