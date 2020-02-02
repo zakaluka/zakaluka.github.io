@@ -1,0 +1,207 @@
+---
+layout: default
+title: TEMPLATE_COMRAK
+author: zakaluka
+tags:
+- Rust
+---
+
+<!-- 
+  Instructions:
+  1. Surround text with HTML and BODY tags.
+  2. Take the header from here.
+  3. Change <pre lang="rust"><code> tags to <pre><code class="lang-rust">. 
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="comrak">
+  <meta name="description" content="Advent of Code 2019 Problem 1">
+  <title>Advent of Code 2019 Day 1 - Rust</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.19.0/themes/prism.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.19.0/components/prism-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.19.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</head>
+
+<body>
+  <h1><a href="#advent-of-code-2019---day-1---calculate-fuel-mass" aria-hidden="true" class="anchor"
+      id="_advent-of-code-2019---day-1---calculate-fuel-mass"></a>Advent of Code 2019 - Day 1 - Calculate fuel mass</h1>
+  <p>The full problem statement can be found on the <a href="https://adventofcode.com/2019/day/1">Advent of Code
+      2019</a>
+    page. I recommend reading the description on their page as the context of
+    the problem is quite fun. However, you can find the relevant portions
+    below.</p>
+  <p><em>NOTE: All the code in this post, including this write-up itself, can be
+      found or generated from the <a href="https://github.com/zakaluka/DailyCodingProblems">GitHub repository</a>.</em>
+  </p>
+  <h2><a href="#problem-1a" aria-hidden="true" class="anchor" id="_problem-1a"></a>Problem 1a</h2>
+  <blockquote>
+    <p>At the first Go / No Go poll, every Elf is Go until the Fuel
+      Counter-Upper. They haven't determined the amount of fuel required yet.</p>
+  </blockquote>
+  <blockquote>
+    <p>Fuel required to launch a given module is based on its mass. Specifically,
+      to find the fuel required for a module, take its mass, divide by three,
+      round down, and subtract 2.</p>
+  </blockquote>
+  <h2><a href="#problem-1b" aria-hidden="true" class="anchor" id="_problem-1b"></a>Problem 1b</h2>
+  <blockquote>
+    <p>During the second Go / No Go poll, the Elf in charge of the Rocket
+      Equation Double-Checker stops the launch sequence. Apparently, you forgot to
+      include additional fuel for the fuel you just added.</p>
+  </blockquote>
+  <blockquote>
+    <p>Fuel itself requires fuel just like a module - take its mass, divide by
+      three, round down, and subtract 2. However, that fuel also requires fuel,
+      and that fuel requires fuel, and so on. Any mass that would require negative
+      fuel should instead be treated as if it requires zero fuel; the remaining
+      mass, if any, is instead handled by wishing really hard, which has no mass
+      and is outside the scope of this calculation.</p>
+  </blockquote>
+  <blockquote>
+    <p>So, for each module mass, calculate its fuel and add it to the total.
+      Then, treat the fuel amount you just calculated as the input mass and repeat
+      the process, continuing until a fuel requirement is zero or negative.</p>
+  </blockquote>
+  <h1><a href="#solution" aria-hidden="true" class="anchor" id="_solution"></a>Solution</h1>
+  <p>The solutions to both problems are quite simple. The full source code is
+    available at the <a href="https://github.com/zakaluka/DailyCodingProblems">above link</a>.</p>
+  <p>However, I will highlight a realization I had - and repeatedly have, so
+    maybe I need to do a better job of learning my lesson the first time!</p>
+  <p>First, here is the source code from my solution to Problem 1a.</p>
+  <pre><code class="lang-rust">pub fn calculate_fuel(mass: u64) -&gt; u64 {
+  let denominator = 3u64;
+  let subtract_from = 2u64;
+
+  (mass.div_euclid(denominator)) - subtract_from
+}
+</code></pre>
+  <p>While this code is simple, it contains an insidious bug. It has to do with
+    an invariant of <code>u64</code>, specifically around subtraction.</p>
+  <p>The problem is that when a subtraction occurs with two <code>u64</code> values, it can
+    result in an overflow if the second number is larger than the first (e.g.
+    <code>1u64 - 2u64</code>). This causes a panic.</p>
+  <p>Now, when I was testing Problem 1a, I only used the samples provided in the
+    problem statement. None of the samples exhibited this behavior, so I
+    thought the solution was correct. Based on this belief, I wrote the
+    solution to Problem 1b using the logic from Problem 1a. Hoever, as you can
+    see from the problem statement for Problem 1b, it is guaranteed to trigger
+    the panic because we continually look for smaller fuel values until we don't
+    need any more fuel.</p>
+  <h2><a href="#avoiding-the-problem" aria-hidden="true" class="anchor" id="_avoiding-the-problem"></a>Avoiding the
+    problem</h2>
+  <p>There is a very easy way I could have avoided this problem - by using
+    property-based testing. I have used the <a href="https://lib.rs/crates/proptest">proptest crate</a> in the past,
+    and it has been very helpful in finding exactly these kinds of
+    bugs - by ensuring that type-level invariants are not violated. However, in
+    this case, I foolishly thought that this wasn't needed for the first Advent
+    of Code problem.</p>
+  <p>When I hit the issue with Problem 1b, I re-wrote the same algorithm as
+    follows:</p>
+  <pre><code class="lang-rust">pub fn calculate_fuel(mass: u64) -&gt; u64 {
+  // Safe helper to calculate fuel needed for a single mass while avoiding a
+  // panic with `u64` subtraction.
+  fn calculate_single_fuel(mass: u64) -&gt; u64 {
+    let denominator = 3u64;
+    let subtract_from = 2u64;
+
+    // Ensure that there is no overflow for `u64`.
+    let div_result: u64 = mass.div_euclid(denominator);
+    if div_result &lt; subtract_from {
+      0
+    } else {
+      div_result - subtract_from
+    }
+  }
+
+  // Tail-recursive helper to calculate total fuel needed.
+  fn cf_helper(acc: u64, mass: u64) -&gt; u64 {
+    if mass == 0 {
+      acc
+    } else {
+      let fuel = calculate_single_fuel(mass);
+      cf_helper(acc + fuel, fuel)
+    }
+  }
+
+  cf_helper(0, mass)
+}
+</code></pre>
+  <p>The <code>cf_helper</code> function is unique to Problem 1b. However,
+    <code>calculate_single_fuel</code> is the new version of the previous <code>calculate_fuel</code>.
+    Even though the function is small, it is twice the size of the original with
+    a new conditional check.</p>
+  <p>This check prevents the aforementioned issue with the code. After I found
+    this problem, I added property-based testing to the codebase. I already
+    knew about the issue with the solution to Problem 1a, so I limited
+    property-based testing to Problem 1b.</p>
+  <p>As you can imagine, <code>proptest</code> immediately identified the obvious mirror to
+    the problem, i.e. calculating a required fuel that is so large that it
+    overflows the maximum value of <code>u64</code>. This issue was found when performing
+    property-based testing on <code>calculate_fuels</code>, whose source code is below.</p>
+  <pre><code class="lang-rust">pub fn calculate_fuels(mass: Vec&lt;u64&gt;) -&gt; u64 {
+  mass
+    .iter()
+    .map(|e| calculate_fuel(*e))
+    .fold(0, |acc, e| acc + e)
+}
+</code></pre>
+  <p>And quite helpfully, <code>proptest</code> identified a minimal test case to cause the
+    overflow.</p>
+  <pre><code class="lang-rust">t = [
+  10706112062174250612,
+  10670116926240500292,
+  8727707064076103253,
+  6789552094928250156,
+]
+</code></pre>
+  <p>However, I did not fix this problem programmatically and for good reason (I
+    believe). First, dealing with this problem will potentially add significant
+    complexity to the solution. Based on my understanding of the
+    problem statement, this is not a realistic occurrence. Thus, I added an
+    assumption to the function and, if that assumption is violated, then the
+    program will panic.</p>
+  <p>What does this mean from a &quot;real-world&quot; perspective? If this was a function
+    in a real-world solution, then the first question to ask the domain experts
+    would be whether they consider this situation to be an issue. If it is
+    identified as a domain-level problem with some expected behavior, then it
+    must be addressed explicitly in the code (e.g. creating an internal type
+    with its own invariants, returning a <code>Result</code>, etc.). However, if it is not,
+    then a panic is a valid response and if the panic occurs when someone is
+    using the library, the situation should be discussed with those same experts
+    to understand how it should be handled. This <a
+      href="https://fsharpforfunandprofit.com/posts/against-railway-oriented-programming/">article</a> from Scott
+    Wlaschin makes a good case against protecting against such errors when there
+    is a need to &quot;fail fast&quot; so that problems can be quickly identified and
+    addressed up front. There is no obvious way for the program to continue and
+    for Santa to get back to Earth if fuel cannot be calculated. As such,
+    failing is the best option so that assumptions and designs can be
+    re-reviewed and re-discussed thoroughly.</p>
+  <p>In this instance, I have left the code as-is and have not addressed the
+    issue with Problem 1b's <code>calculate_fuels</code> method.</p>
+  <h1><a href="#conclusion" aria-hidden="true" class="anchor" id="_conclusion"></a>Conclusion</h1>
+  <p>I seem to always be re-learning a lesson when it comes to property-based
+    testing. And that lesson is - just do it. At worst, it will validate parts
+    of the design. But more often than not, it will highlight issues ranging
+    from logic errors to implicit assumptions. And that can only help the code
+    improve and be of higher quality when it is delivered.</p>
+  <p>As for the &quot;bug&quot; that has been left in the program, I do believe that
+    attempting to handle this problem programmatically with incomplete
+    information would be a case of incorrect over-engineering. Maybe if this
+    library were exposed as a web service with wide-ranging use cases that
+    cannot be anticipated during initial development, the response might be
+    slightly different. However, in the end, libraries should deal with
+    expected situations gracefully. Unexpected situations that result in errors
+    should fail fast so that problems can be recognized and the defect can be
+    reported and handled appropriately. Please note that I'm not referring to
+    how end users of a program (i.e. non-technical folks) are presented with
+    this issue. I am referring to other developers who are making use of a
+    library.</p>
+  <p>See you in the next one!</p>
+</body>
+
+</html>
