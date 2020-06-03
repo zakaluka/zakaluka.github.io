@@ -1,0 +1,4 @@
+This is a Brave Rewards publisher verification file.
+
+Domain: zakaluka.github.io
+Token: 9827ac7d9879c4ff8e6e83f344fbed6e61f76a135c77564d1c79a9e7182e8f10
