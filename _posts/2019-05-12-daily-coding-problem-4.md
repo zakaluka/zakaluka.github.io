@@ -6,6 +6,7 @@ author: zakaluka
 tags:
   - Daily Coding Problem
   - F#
+  - Fsharp
   - FSharp.Literate
 modified_time: "2019-05-12T22:19:39.328-05:00"
 blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-1288372102742568565
