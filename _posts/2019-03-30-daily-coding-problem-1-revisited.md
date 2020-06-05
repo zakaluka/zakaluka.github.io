@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Daily Coding Problem 1 Revisited ???
+title: Daily Coding Problem 1 Revisited
 date: '2019-03-30T23:58:00.004-05:00'
 author: zakaluka
 tags:
@@ -14,7 +14,7 @@ blogger_id: tag:blogger.com,1999:blog-36337335936526669.post-5753144532492702339
 blogger_orig_url: https://www.znprojects.com/2019/03/daily-coding-problem-1-revisited.html
 ---
 
-# Daily Coding Problem 1 - Revisited ???
+# Daily Coding Problem 1 - Revisited
 
 You can find the original blog post [here](https://www.znprojects.com/2019/01/daily-coding-problem-1.html).  The purpose of this post is to attempt a solution using a suggestion left by a reader, [Josef Starychfojtu](https://www.blogger.com/profile/07000579469514387730).
 
@@ -58,7 +58,6 @@ So, how do we go about solving this problem?
     1. Else return true.
 
 NOTE: I am going to try once more to use [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet) to test this code.
-
 
 ```fsharp
 // Easy way to work with any Nuget packages
@@ -158,7 +157,6 @@ Our logic works.  Let's add one more strategy, because MSDN seems to imply that 
 
 We use the same strategy as #3, except using an F# `Map`.
 
-
 ```fsharp
 /// F# Map
 let mapRun ilist k =
@@ -253,7 +251,6 @@ let subtractionRun ilist k =
 
 As well as the input generator.
 
-
 ```fsharp
 /// Performance testing setup - change the input parameter if you want repeatable tests
 /// NOTE: System.Random is NOT thread-safe.  Using PSeq here is dubious at best.
@@ -286,7 +283,6 @@ let inputGenerator numToGenerate : (int list * int) list =
 ```
 
 Despite various attempts, BenchmarkDotNet refuses to run within jupyter :(. So, instead, measuring performance using the `Stopwatch` class and `System.Diagnostics`.
-
 
 ```fsharp
 /// Control variable for run: how many entries in each run?
@@ -335,7 +331,6 @@ let mutable runtimeAndMemory : float list list = []
 
 // Separate the runs between cells to avoid a timeout on a single cell.
 ```
-
 
 ```fsharp
 // Sleeping to ensure GC cleanup is done before next cell runs
