@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Left-Leaning Red-Black Tree
+title: Left-Leaning Red-Black Tree in F#
 author: zakaluka
 tags:
   - Data Structure
@@ -11,7 +11,7 @@ date: "2020-06-05T12:00:00.000-05:00"
 modified_time: "2020-06-05T12:00:00.000-05:00"
 ---
 
-# Left-Leaning Red-Black Tree
+# Left-Leaning Red-Black Tree in F#
 
 *tl;dr Wrote a new left-leaning red-black tree.  You can reference it from [NuGet][21] or download the source from [GitHub][1].*
 
